@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tactical Arena</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main id="app" aria-label="Tactical Arena game">
+      <canvas id="gameCanvas"></canvas>
+
+      <section id="hud" class="hud hidden" aria-live="polite">
+        <div class="hud-left">
+          <div class="readout">
+            <span class="label">Health</span>
+            <span id="healthText" class="value">100</span>
+          </div>
+          <div class="readout">
+            <span class="label">Ammo</span>
+            <span id="ammoText" class="value">12 / 48</span>
+          </div>
+          <div class="readout">
+            <span class="label">Weapon</span>
+            <span id="weaponText" class="value">Pistol</span>
+          </div>
+        </div>
+        <div class="hud-center">
+          <div class="readout">
+            <span class="label">Bots</span>
+            <span id="botsText" class="value">4</span>
+          </div>
+          <div class="readout">
+            <span class="label">Timer</span>
+            <span id="timerText" class="value">02:30</span>
+          </div>
+          <div class="readout">
+            <span class="label">Score</span>
+            <span id="scoreText" class="value">0</span>
+          </div>
+        </div>
+        <div class="hud-right">
+          <button id="muteButton" class="icon-button" type="button" aria-label="Mute audio" title="Mute audio">
+            <span class="audio-glyph" aria-hidden="true"></span>
+          </button>
+          <canvas id="radarCanvas" width="150" height="150" aria-label="Radar"></canvas>
+        </div>
+      </section>
+
+      <div id="crosshair" class="crosshair hidden" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div id="hitMarker" class="hit-marker hidden" aria-hidden="true">x</div>
+      <div id="damageVignette" class="damage-vignette hidden" aria-hidden="true"></div>
+
+      <section id="menu" class="panel menu">
+        <div class="brand-icon" aria-hidden="true">
+          <span></span>
+        </div>
+        <h1>Tactical Arena</h1>
+        <p class="subhead">Clear the training site before time runs out.</p>
+        <div class="menu-actions">
+          <button id="startButton" class="primary" type="button">Start Game</button>
+          <button id="controlsButton" type="button">Controls</button>
+        </div>
+        <div id="bestStats" class="best-stats">Best score: 0</div>
+        <div id="controlsPanel" class="controls-panel hidden">
+          <dl>
+            <div><dt>Move</dt><dd>WASD</dd></div>
+            <div><dt>Jump</dt><dd>Space</dd></div>
+            <div><dt>Aim</dt><dd>Mouse, pointer lock, or drag</dd></div>
+            <div><dt>Shoot</dt><dd>Left click</dd></div>
+            <div><dt>Reload</dt><dd>R</dd></div>
+            <div><dt>Switch</dt><dd>1 pistol, 2 rifle</dd></div>
+            <div><dt>Pause</dt><dd>Esc</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="pausePanel" class="panel hidden">
+        <h2>Paused</h2>
+        <p class="subhead">Pointer lock is released while paused.</p>
+        <div class="menu-actions">
+          <button id="resumeButton" class="primary" type="button">Resume</button>
+          <button id="restartPauseButton" type="button">Restart Round</button>
+        </div>
+        <div class="controls-panel">
+          <dl>
+            <div><dt>Move</dt><dd>WASD</dd></div>
+            <div><dt>Jump</dt><dd>Space</dd></div>
+            <div><dt>Aim</dt><dd>Mouse or drag</dd></div>
+            <div><dt>Shoot</dt><dd>Left click</dd></div>
+            <div><dt>Reload</dt><dd>R</dd></div>
+            <div><dt>Switch</dt><dd>1 / 2</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="roundPanel" class="panel hidden">
+        <h2 id="roundTitle">Round Complete</h2>
+        <p id="roundSummary" class="subhead"></p>
+        <div id="scoreboard" class="scoreboard"></div>
+        <div class="menu-actions">
+          <button id="restartButton" class="primary" type="button">Restart Round</button>
+          <button id="menuButton" type="button">Main Menu</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
