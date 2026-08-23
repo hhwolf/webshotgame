@@ -78,7 +78,9 @@
         { x: 13.45, y: 7.5, type: "sign", color: "#65d18e", label: "EAST" },
         { x: 4.5, y: 9.5, type: "crate", color: "#4cc3d9", label: "C" },
         { x: 9.5, y: 11.0, type: "cone", color: "#ff8a4c" },
-        { x: 3.5, y: 8.5, type: "lamp", color: "#ffe88a" }
+        { x: 3.5, y: 8.5, type: "lamp", color: "#ffe88a" },
+        { x: 5.5, y: 1.5, type: "health", color: "#65d18e" },
+        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" }
       ]
     },
     {
@@ -116,7 +118,9 @@
         { x: 11.5, y: 5.5, type: "crate", color: "#4cc3d9", label: "E" },
         { x: 6.5, y: 7.5, type: "cone", color: "#ff9f43" },
         { x: 8.5, y: 9.5, type: "barrel", color: "#9d8df1" },
-        { x: 12.5, y: 11.0, type: "lamp", color: "#ffe88a" }
+        { x: 12.5, y: 11.0, type: "lamp", color: "#ffe88a" },
+        { x: 7.5, y: 1.5, type: "health", color: "#65d18e" },
+        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" }
       ]
     },
     {
@@ -154,7 +158,9 @@
         { x: 14.2, y: 5.5, type: "lamp", color: "#ffe88a" },
         { x: 4.5, y: 7.5, type: "crate", color: "#65d18e", label: "G" },
         { x: 13.5, y: 9.5, type: "cone", color: "#ff8a4c" },
-        { x: 10.5, y: 11.0, type: "barrel", color: "#4cc3d9" }
+        { x: 10.5, y: 11.0, type: "barrel", color: "#4cc3d9" },
+        { x: 7.5, y: 7.5, type: "health", color: "#65d18e" },
+        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" }
       ]
     }
   ];
@@ -252,6 +258,8 @@
     speed: 3.0,
     vx: 0,
     vy: 0,
+    moveAngle: spawn.a,
+    moveInputActive: false,
     recoil: 0,
     shake: 0,
     damageFlash: 0,
@@ -269,7 +277,10 @@
     landing: 0,
     jumpCooldown: 0,
     jumpBuffer: 0,
-    damageAngle: 0
+    damageAngle: 0,
+    healFlash: 0,
+    healAmount: 0,
+    healthKits: 0
   };
 
   const TAU = Math.PI * 2;
@@ -582,6 +593,8 @@
       health: 100,
       vx: 0,
       vy: 0,
+      moveAngle: spawn.a,
+      moveInputActive: false,
       recoil: 0,
       shake: 0,
       damageFlash: 0,
@@ -599,8 +612,12 @@
       landing: 0,
       jumpCooldown: 0,
       jumpBuffer: 0,
-      damageAngle: 0
+      damageAngle: 0,
+      healFlash: 0,
+      healAmount: 0,
+      healthKits: 0
     });
+    arenaProps = activeArena.props.map((prop, index) => ({ ...prop, id: index, active: true }));
     state.bots = botSpawns.map((spot, index) => makeBot(index, spot));
     state.effects = [];
     state.score = 0;
@@ -610,6 +627,10 @@
     state.countdown = 2.4;
     state.roundControls = new Set();
     state.lastShotHeld = false;
+    state.keys.KeyW = false;
+    state.keys.KeyA = false;
+    state.keys.KeyS = false;
+    state.keys.KeyD = false;
     ui.hitMarker.classList.add("hidden");
     ui.damage.classList.add("hidden");
     updateHud();
@@ -640,6 +661,13 @@
 
   function pauseGame() {
     if (state.mode !== "playing") return;
+    state.keys.KeyW = false;
+    state.keys.KeyA = false;
+    state.keys.KeyS = false;
+    state.keys.KeyD = false;
+    player.moveInputActive = false;
+    player.vx = 0;
+    player.vy = 0;
     document.exitPointerLock?.();
     showOnly("paused");
   }
@@ -683,6 +711,7 @@
     ui.scoreboard.innerHTML = [
       `<div>Arena: ${activeArena.name}</div>`,
       `<div>Kills: ${state.kills} / ${state.bots.length}</div>`,
+      `<div>Health kits: ${player.healthKits}</div>`,
       `<div>Base score: ${state.score}</div>`,
       `<div>Time bonus: ${timeBonus}</div>`,
       `<div>Final score: ${finalScore}</div>`,
@@ -815,6 +844,22 @@
     updateHud();
   }
 
+  function collectHealthKits() {
+    if (player.health >= 100) return;
+    for (const prop of arenaProps) {
+      if (prop.type !== "health" || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.55) continue;
+      const previousHealth = player.health;
+      player.health = Math.min(100, player.health + 40);
+      player.healAmount = Math.ceil(player.health - previousHealth);
+      player.healFlash = 0.8;
+      player.healthKits += 1;
+      prop.active = false;
+      state.score += 30;
+      playTone("heal");
+      updateHud();
+    }
+  }
+
   function jump() {
     if (state.mode !== "playing") return false;
     markControl("jump");
@@ -887,6 +932,7 @@
     player.muzzle = Math.max(0, player.muzzle - dt);
     player.hitMarker = Math.max(0, player.hitMarker - dt);
     player.damageFlash = Math.max(0, player.damageFlash - dt);
+    player.healFlash = Math.max(0, player.healFlash - dt);
     player.jumpCooldown = Math.max(0, player.jumpCooldown - dt);
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
     player.landing = Math.max(0, player.landing - dt * 4.5);
@@ -915,10 +961,17 @@
 
     const forward = (state.keys.KeyW ? 1 : 0) - (state.keys.KeyS ? 1 : 0);
     const strafe = (state.keys.KeyD ? 1 : 0) - (state.keys.KeyA ? 1 : 0);
+    const hasMoveInput = forward !== 0 || strafe !== 0;
+    if (hasMoveInput && !player.moveInputActive) {
+      player.moveAngle = player.a;
+      player.moveInputActive = true;
+    } else if (!hasMoveInput) {
+      player.moveInputActive = false;
+    }
     const inputLength = Math.hypot(forward, strafe) || 1;
-    const targetVx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
-    const targetVy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
-    const response = 1 - Math.exp(-(forward || strafe ? 16 : 11) * dt);
+    const targetVx = (Math.cos(player.moveAngle) * forward + Math.cos(player.moveAngle + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const targetVy = (Math.sin(player.moveAngle) * forward + Math.sin(player.moveAngle + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const response = 1 - Math.exp(-(hasMoveInput ? 16 : 11) * dt);
     player.vx += (targetVx - player.vx) * response;
     player.vy += (targetVy - player.vy) * response;
     const movingSpeed = Math.hypot(player.vx, player.vy);
@@ -931,6 +984,7 @@
       if (Math.abs(player.y - oldY) < Math.abs(player.vy * dt) * 0.15) player.vy *= 0.25;
       player.bob += dt * (8 + movingSpeed * 1.4);
     }
+    collectHealthKits();
 
     if (state.pointerDown && currentWeapon().auto) shoot();
     if (state.countdown <= 0) updateBots(dt);
@@ -1182,21 +1236,6 @@
       }
     }
 
-    ctx.strokeStyle = "rgba(218, 235, 236, 0.16)";
-    ctx.lineWidth = Math.max(1, w / 1000);
-    for (let i = -7; i <= 7; i += 1) {
-      ctx.beginPath();
-      ctx.moveTo(w / 2, horizon);
-      ctx.lineTo(w / 2 + i * w * 0.18, h);
-      ctx.stroke();
-    }
-    for (let i = 1; i < 13; i += 1) {
-      const p = i / 13;
-      const y = horizon + Math.pow(p, 1.75) * (h - horizon);
-      ctx.fillStyle = `rgba(226, 239, 238, ${0.04 + p * 0.1})`;
-      ctx.fillRect(0, y, w, Math.max(1, h / 700));
-    }
-
     const fog = ctx.createLinearGradient(0, horizon - h * 0.08, 0, horizon + h * 0.2);
     fog.addColorStop(0, "rgba(210, 232, 224, 0)");
     fog.addColorStop(0.5, "rgba(210, 232, 224, 0.12)");
@@ -1222,15 +1261,18 @@
 
   function drawArenaProps(w, h) {
     const props = arenaProps
+      .filter((prop) => prop.active !== false)
       .map((prop) => ({ prop, dist: distance(player.x, player.y, prop.x, prop.y) }))
       .sort((a, b) => b.dist - a.dist);
 
     for (const { prop } of props) {
-      const p = projectBillboard(prop.x, prop.y, w, h, prop.type === "lamp" ? 1.05 : 0.58);
+      const heightScale = prop.type === "lamp" ? 1.05 : prop.type === "health" ? 0.5 : 0.58;
+      const p = projectBillboard(prop.x, prop.y, w, h, heightScale);
       if (!p) continue;
       const size = p.projectedH;
       ctx.save();
-      ctx.translate(p.screenX, p.footY);
+      const float = prop.type === "health" ? Math.sin(performance.now() * 0.003 + prop.id) * size * 0.04 : 0;
+      ctx.translate(p.screenX, p.footY - float);
       ctx.globalAlpha = clamp(1.2 - p.depth / 20, 0.58, 1);
       ctx.fillStyle = "rgba(12, 20, 24, 0.28)";
       ctx.beginPath();
@@ -1300,6 +1342,24 @@
         ctx.beginPath();
         ctx.arc(0, -size * 0.9, size * 0.075, 0, TAU);
         ctx.fill();
+      } else if (prop.type === "health") {
+        ctx.fillStyle = "rgba(101, 209, 142, 0.2)";
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.36, size * 0.48, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#f7fff4";
+        ctx.beginPath();
+        ctx.roundRect(-size * 0.34, -size * 0.67, size * 0.68, size * 0.58, size * 0.09);
+        ctx.fill();
+        ctx.fillStyle = prop.color;
+        ctx.beginPath();
+        ctx.roundRect(-size * 0.29, -size * 0.62, size * 0.58, size * 0.48, size * 0.06);
+        ctx.fill();
+        ctx.fillStyle = "#f7fff4";
+        ctx.fillRect(-size * 0.07, -size * 0.54, size * 0.14, size * 0.31);
+        ctx.fillRect(-size * 0.16, -size * 0.45, size * 0.32, size * 0.13);
+        ctx.fillStyle = "#27444b";
+        ctx.fillRect(-size * 0.13, -size * 0.73, size * 0.26, size * 0.08);
       }
       ctx.restore();
     }
@@ -1568,6 +1628,20 @@
       ctx.fill();
       ctx.restore();
     }
+
+    if (player.healFlash > 0) {
+      const alpha = clamp(player.healFlash * 1.25, 0, 1);
+      const glow = ctx.createRadialGradient(w / 2, h / 2, h * 0.18, w / 2, h / 2, h * 0.7);
+      glow.addColorStop(0, "rgba(101, 209, 142, 0)");
+      glow.addColorStop(1, `rgba(101, 209, 142, ${alpha * 0.28})`);
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = `rgba(223, 255, 227, ${alpha})`;
+      ctx.font = `900 ${Math.max(18, Math.min(w, h) * 0.035)}px Avenir Next, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`+${player.healAmount} HEALTH`, w / 2, h * 0.63);
+    }
   }
 
   function projectPoint(x, y, w, h, viewDist) {
@@ -1750,6 +1824,12 @@
       dur = 0.18;
       vol = 0.09;
       osc.type = "sawtooth";
+    } else if (type === "heal") {
+      freq = 540;
+      dur = 0.24;
+      vol = 0.065;
+      osc.type = "sine";
+      osc.frequency.exponentialRampToValueAtTime(880, now + dur);
     } else if (type === "bot") {
       freq = 130;
       dur = 0.055;
@@ -1992,8 +2072,13 @@
           z: Number(player.z.toFixed(3)),
           vz: Number(player.vz.toFixed(3)),
           grounded: player.grounded,
-          angle: Number(player.a.toFixed(3))
+          angle: Number(player.a.toFixed(3)),
+          moveAngle: Number(player.moveAngle.toFixed(3)),
+          healthKits: player.healthKits
         },
+        healthKits: arenaProps
+          .filter((prop) => prop.type === "health")
+          .map((prop) => ({ x: prop.x, y: prop.y, active: prop.active !== false })),
         botHealth: state.bots.map((bot) => Math.max(0, Math.ceil(bot.hp))),
         botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name })),
         botPositions: state.bots.map((bot) => ({ x: Number(bot.x.toFixed(3)), y: Number(bot.y.toFixed(3)), z: Number(bot.z.toFixed(3)) })),

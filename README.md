@@ -25,7 +25,7 @@ Open `http://127.0.0.1:4789`.
 
 ## Controls
 
-- `WASD`: move
+- `WASD`: move; the movement heading stays locked while movement keys are held so aiming can rotate independently
 - `Space`: jump
 - Mouse: aim
 - Left click: shoot
@@ -34,3 +34,5 @@ Open `http://127.0.0.1:4789`.
 - `Esc`: pause or release pointer lock
 
 The game uses original geometric artwork and generated Web Audio effects. No third-party game assets or copyrighted franchise material are included.
+
+Each arena also contains two single-use health kits that restore up to 40 health.
