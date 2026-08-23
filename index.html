@@ -6,7 +6,7 @@
     <title>Tactical Arena</title>
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=5">
+    <link rel="stylesheet" href="./styles.css?v=6">
   </head>
   <body>
     <main id="app" aria-label="Tactical Arena game">
@@ -29,7 +29,7 @@
         </div>
         <div class="hud-center">
           <div class="readout arena-readout">
-            <span id="levelText" class="label">Level 1 / 5</span>
+            <span id="levelText" class="label">Level 1 / 6 · Floor 1 / 2</span>
             <span id="arenaText" class="value">Cargo Court</span>
             <span id="objectiveText" class="objective-value">Clear the squad</span>
           </div>
@@ -60,6 +60,12 @@
       <div id="hitMarker" class="hit-marker hidden" aria-hidden="true">x</div>
       <div id="damageVignette" class="damage-vignette hidden" aria-hidden="true"></div>
       <div id="roundCallout" class="round-callout hidden" aria-live="assertive"></div>
+      <div id="interactionPrompt" class="interaction-prompt hidden" aria-live="polite">E · Use lift</div>
+      <div id="bossHud" class="boss-hud hidden" aria-live="polite">
+        <div class="boss-heading"><span>Atlas</span><span id="bossPhaseText">Phase 1</span></div>
+        <div class="boss-meter"><span id="bossHealthBar"></span></div>
+        <div class="boss-meter shield"><span id="bossShieldBar"></span></div>
+      </div>
 
       <section id="menu" class="panel menu">
         <div class="brand-icon" aria-hidden="true">
@@ -80,6 +86,7 @@
           <dl>
             <div><dt>Move</dt><dd>WASD</dd></div>
             <div><dt>Jump</dt><dd>Space</dd></div>
+            <div><dt>Lift</dt><dd>E near a lift</dd></div>
             <div><dt>Aim</dt><dd>Mouse, pointer lock, or drag</dd></div>
             <div><dt>Shoot</dt><dd>Left click</dd></div>
             <div><dt>Reload</dt><dd>R</dd></div>
@@ -100,6 +107,7 @@
           <dl>
             <div><dt>Move</dt><dd>WASD</dd></div>
             <div><dt>Jump</dt><dd>Space</dd></div>
+            <div><dt>Lift</dt><dd>E near a lift</dd></div>
             <div><dt>Aim</dt><dd>Mouse or drag</dd></div>
             <div><dt>Shoot</dt><dd>Left click</dd></div>
             <div><dt>Reload</dt><dd>R</dd></div>
@@ -128,6 +136,6 @@
       </section>
     </main>
 
-    <script src="./game.js?v=5"></script>
+    <script src="./game.js?v=6"></script>
   </body>
 </html>

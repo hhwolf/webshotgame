@@ -21,6 +21,11 @@
     arena: document.getElementById("arenaText"),
     level: document.getElementById("levelText"),
     objective: document.getElementById("objectiveText"),
+    interaction: document.getElementById("interactionPrompt"),
+    boss: document.getElementById("bossHud"),
+    bossHealth: document.getElementById("bossHealthBar"),
+    bossShield: document.getElementById("bossShieldBar"),
+    bossPhase: document.getElementById("bossPhaseText"),
     best: document.getElementById("bestStats"),
     controls: document.getElementById("controlsPanel"),
     crosshair: document.getElementById("crosshair"),
@@ -50,6 +55,8 @@
   const ARENAS = [
     {
       name: "Cargo Court",
+      floors: 2,
+      elevators: [{ x: 8.5, y: 1.5 }, { x: 12.5, y: 11.0 }],
       objective: { type: "eliminate", label: "Clear the squad", goal: 5 },
       sky: ["#78c9e8", "#b7e2e7", "#f4d58b"],
       grid: [
@@ -92,6 +99,8 @@
     },
     {
       name: "Sunset Yard",
+      floors: 2,
+      elevators: [{ x: 6.5, y: 1.5 }, { x: 12.5, y: 11.0 }],
       objective: { type: "collect", label: "Recover intel", goal: 2 },
       sky: ["#77b9e8", "#d4c9ed", "#ffcf8b"],
       grid: [
@@ -135,7 +144,9 @@
     },
     {
       name: "Canal Works",
-      objective: { type: "hold", label: "Secure relay", goal: 8, position: { x: 10.5, y: 7.5 } },
+      floors: 2,
+      elevators: [{ x: 5.5, y: 1.5 }, { x: 10.5, y: 11.0 }],
+      objective: { type: "hold", label: "Secure relay", goal: 8, floor: 1, position: { x: 10.5, y: 7.5 } },
       sky: ["#62c7d7", "#a8e3d3", "#f7e39a"],
       grid: [
         "1111111111111111",
@@ -177,6 +188,8 @@
     },
     {
       name: "Metro Market",
+      floors: 2,
+      elevators: [{ x: 5.5, y: 1.5 }, { x: 12.5, y: 11.0 }],
       objective: { type: "collect", label: "Claim supply caches", goal: 3 },
       sky: ["#6cb8e6", "#c5d9f0", "#ffc982"],
       grid: [
@@ -219,7 +232,9 @@
     },
     {
       name: "Beacon District",
-      objective: { type: "hold", label: "Charge the beacon", goal: 12, position: { x: 7.5, y: 7.5 } },
+      floors: 2,
+      elevators: [{ x: 6.5, y: 1.5 }, { x: 10.5, y: 11.0 }],
+      objective: { type: "hold", label: "Charge the beacon", goal: 12, floor: 1, position: { x: 7.5, y: 7.5 } },
       sky: ["#63b8d6", "#b5dce0", "#f4d999"],
       grid: [
         "1111111111111111",
@@ -256,6 +271,48 @@
         { x: 13.5, y: 1.5, type: "health", color: "#65d18e" },
         { x: 7.5, y: 7.5, type: "zone", color: "#9d8df1", label: "BEACON" }
       ]
+    },
+    {
+      name: "Apex Foundry",
+      floors: 3,
+      elevators: [{ x: 6.5, y: 1.5 }, { x: 12.5, y: 11.0 }],
+      objective: { type: "eliminate", label: "Defeat Atlas", goal: 5 },
+      sky: ["#53a9c9", "#9bd5d4", "#ffd074"],
+      grid: [
+        "1111111111111111",
+        "1000000000000001",
+        "1011110110111101",
+        "1000010101000001",
+        "1010010101011101",
+        "1010000001000001",
+        "1011101101110101",
+        "1000000000000101",
+        "1010111111100101",
+        "1000000000000001",
+        "1011101110111101",
+        "1000000000000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.1 },
+      botSpawns: [{ x: 13.5, y: 1.5 }, { x: 14.2, y: 5.5 }, { x: 1.5, y: 11.0 }, { x: 8.5, y: 7.5 }, { x: 12.5, y: 9.5 }],
+      patrolRoutes: [
+        [{ x: 13.5, y: 1.5 }, { x: 9.5, y: 1.5 }, { x: 11.5, y: 3.5 }],
+        [{ x: 14.2, y: 5.5 }, { x: 14.2, y: 7.5 }, { x: 12.5, y: 9.5 }],
+        [{ x: 1.5, y: 11.0 }, { x: 5.5, y: 11.0 }, { x: 9.5, y: 11.0 }],
+        [{ x: 8.5, y: 7.5 }, { x: 5.5, y: 7.5 }, { x: 3.5, y: 7.5 }],
+        [{ x: 12.5, y: 9.5 }, { x: 8.5, y: 9.5 }, { x: 12.5, y: 11.0 }]
+      ],
+      coverPoints: [{ x: 6.5, y: 1.5 }, { x: 4.5, y: 3.5 }, { x: 12.5, y: 5.5 }, { x: 5.5, y: 7.5 }, { x: 12.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 10.5, y: 11.0 }],
+      props: [
+        { x: 4.5, y: 3.5, type: "crate", color: "#4cc3d9", label: "CORE", floor: 0 },
+        { x: 12.5, y: 5.5, type: "barrel", color: "#ec6d5f", floor: 1 },
+        { x: 3.5, y: 7.5, type: "lamp", color: "#ffe88a", floor: 2 },
+        { x: 12.5, y: 9.5, type: "crate", color: "#f2b84b", label: "APEX", floor: 2 },
+        { x: 5.5, y: 11.0, type: "health", color: "#65d18e", floor: 0 },
+        { x: 13.5, y: 1.5, type: "health", color: "#65d18e", floor: 1 },
+        { x: 8.5, y: 9.5, type: "health", color: "#65d18e", floor: 2 },
+        { x: 7.5, y: 7.5, type: "zone", color: "#ec6d5f", label: "FORGE", floor: 2 }
+      ]
     }
   ];
 
@@ -282,14 +339,16 @@
     rifleman: { id: "rifleman", label: "Rifle", hp: 100, speed: 1, fireMin: 0.75, fireMax: 1.35, damageMin: 7, damageMax: 15, accuracy: 0.82, scale: 1, accent: "#ffd166" },
     rusher: { id: "rusher", label: "Rush", hp: 82, speed: 1.42, fireMin: 0.9, fireMax: 1.4, damageMin: 6, damageMax: 12, accuracy: 0.72, scale: 0.92, accent: "#ff8a64" },
     heavy: { id: "heavy", label: "Heavy", hp: 155, speed: 0.72, fireMin: 0.62, fireMax: 1.05, damageMin: 9, damageMax: 17, accuracy: 0.76, scale: 1.16, accent: "#9d8df1" },
-    scout: { id: "scout", label: "Scout", hp: 68, speed: 1.24, fireMin: 1.05, fireMax: 1.65, damageMin: 8, damageMax: 14, accuracy: 0.9, scale: 0.88, accent: "#4cc3d9" }
+    scout: { id: "scout", label: "Scout", hp: 68, speed: 1.24, fireMin: 1.05, fireMax: 1.65, damageMin: 8, damageMax: 14, accuracy: 0.9, scale: 0.88, accent: "#4cc3d9" },
+    boss: { id: "boss", label: "Boss", hp: 520, shield: 180, speed: 0.78, fireMin: 0.56, fireMax: 0.9, damageMin: 10, damageMax: 18, accuracy: 0.82, scale: 1.48, accent: "#ec6d5f" }
   };
   const arenaBotRoles = [
     ["rifleman", "rifleman", "scout", "rusher", "rifleman"],
     ["rusher", "rifleman", "scout", "rusher", "rifleman"],
     ["heavy", "rifleman", "scout", "rusher", "rifleman"],
     ["heavy", "rusher", "scout", "rusher", "rifleman"],
-    ["heavy", "heavy", "scout", "rusher", "rifleman"]
+    ["heavy", "heavy", "scout", "rusher", "rifleman"],
+    ["boss", "rusher", "scout", "heavy", "rusher"]
   ];
 
   const weapons = [
@@ -415,7 +474,10 @@
     upgrades: [],
     footstepTimer: 0,
     noticeFlash: 0,
-    noticeText: ""
+    noticeText: "",
+    floor: 0,
+    floorTransition: 0,
+    liftCooldown: 0
   };
   player.accent = localStorage.getItem("tacticalArena.accent") || accentOptions[0].color;
   const savedAccent = accentOptions.find((option) => option.color === player.accent);
@@ -549,6 +611,7 @@
       const width = arena.grid[0]?.length || 0;
       const points = [
         ["player spawn", arena.spawn],
+        ...arena.elevators.map((point, index) => [`lift ${index + 1}`, point]),
         ...arena.botSpawns.map((point, index) => [`bot spawn ${index + 1}`, point]),
         ...arena.patrolRoutes.flatMap((route, routeIndex) => route.map((point, pointIndex) => [`route ${routeIndex + 1}.${pointIndex + 1}`, point])),
         ...arena.coverPoints.map((point, index) => [`cover ${index + 1}`, point]),
@@ -560,6 +623,8 @@
         return gx < 0 || gy < 0 || gx >= width || gy >= height || arena.grid[gy][gx] === "1";
       };
       if (arena.grid.some((row) => row.length !== width)) errors.push("rows have inconsistent widths");
+      if (!Number.isInteger(arena.floors) || arena.floors < 2) errors.push("arena must have at least two floors");
+      if (arena.elevators.length < 1) errors.push("arena must have a lift");
       if (arena.objective.type === "collect" && arena.props.filter((prop) => prop.type === "objective").length !== arena.objective.goal) {
         errors.push("collect objective count does not match its goal");
       }
@@ -590,7 +655,7 @@
           errors.push(`${label} is unreachable`);
         }
       }
-      return { name: arena.name, valid: errors.length === 0, errors };
+      return { name: arena.name, floors: arena.floors, lifts: arena.elevators.length, valid: errors.length === 0, errors };
     });
   }
 
@@ -678,6 +743,8 @@
     ui.hud.classList.toggle("hidden", mode !== "playing" && mode !== "upgrade");
     ui.crosshair.classList.toggle("hidden", mode !== "playing");
     if (mode !== "playing") ui.callout.classList.add("hidden");
+    if (mode !== "playing") ui.interaction.classList.add("hidden");
+    if (mode !== "playing" && mode !== "upgrade") ui.boss.classList.add("hidden");
   }
 
   function updateCallout() {
@@ -727,11 +794,15 @@
     const palette = { ...botPalettes[index % botPalettes.length], trim: type.accent };
     return {
       id: index + 1,
-      name: botNames[index % botNames.length],
+      name: type.id === "boss" ? "Atlas" : botNames[index % botNames.length],
       x: spot.x,
       y: spot.y,
+      floor: type.id === "boss" ? activeArena.floors - 1 : index % activeArena.floors,
       hp: type.hp,
       maxHp: type.hp,
+      shield: type.shield || 0,
+      maxShield: type.shield || 0,
+      phase: 1,
       type,
       alive: true,
       death: 0,
@@ -800,9 +871,31 @@
       upgrades: [],
       footstepTimer: 0,
       noticeFlash: 0,
-      noticeText: ""
+      noticeText: "",
+      floor: 0,
+      floorTransition: 0,
+      liftCooldown: 0
     });
-    arenaProps = activeArena.props.map((prop, index) => ({ ...prop, id: index, active: true }));
+    let objectiveIndex = 0;
+    arenaProps = activeArena.props.map((prop, index) => {
+      let floor = prop.floor;
+      if (floor === undefined && prop.type === "objective") floor = objectiveIndex++ % activeArena.floors;
+      if (floor === undefined && prop.type === "zone") floor = activeArena.objective.floor || 0;
+      if (floor === undefined) floor = index % activeArena.floors;
+      return { ...prop, floor, id: index, active: true };
+    });
+    const liftProps = activeArena.elevators.flatMap((lift, liftIndex) => (
+      Array.from({ length: activeArena.floors }, (_, floor) => ({
+        ...lift,
+        floor,
+        id: `lift-${liftIndex}-${floor}`,
+        type: "lift",
+        color: "#4cc3d9",
+        label: `LIFT ${floor + 1}`,
+        active: true
+      }))
+    ));
+    arenaProps.push(...liftProps);
     state.bots = botSpawns.map((spot, index) => makeBot(index, spot));
     state.effects = [];
     state.score = 0;
@@ -992,7 +1085,7 @@
     let best = wall.dist;
 
     for (const bot of state.bots) {
-      if (!bot.alive) continue;
+      if (!bot.alive || bot.floor !== player.floor) continue;
       const dx = bot.x - player.x;
       const dy = bot.y - player.y;
       const dist = Math.hypot(dx, dy);
@@ -1019,10 +1112,29 @@
   }
 
   function damageBot(bot, amount) {
+    if (bot.shield > 0) {
+      const absorbed = Math.min(bot.shield, amount);
+      bot.shield -= absorbed;
+      amount -= absorbed;
+      if (bot.shield <= 0) {
+        player.noticeText = "ATLAS SHIELD BROKEN";
+        player.noticeFlash = 1.1;
+        playTone("shield");
+      }
+    }
     bot.hp -= amount;
     bot.alert = 1;
     bot.hurt = 0.2;
-    bot.state = bot.hp < bot.maxHp * 0.45 ? "cover" : "attack";
+    bot.state = bot.type.id !== "boss" && bot.hp < bot.maxHp * 0.45 ? "cover" : "attack";
+    if (bot.type.id === "boss" && bot.alive && bot.hp > 0) {
+      const nextPhase = bot.hp <= bot.maxHp * 0.33 ? 3 : bot.hp <= bot.maxHp * 0.66 ? 2 : 1;
+      if (nextPhase > bot.phase) {
+        bot.phase = nextPhase;
+        player.noticeText = `ATLAS PHASE ${bot.phase}`;
+        player.noticeFlash = 1.1;
+        playTone("bossPhase");
+      }
+    }
     player.hitMarker = 0.12;
     ui.hitMarker.classList.remove("hidden");
     state.score += 15;
@@ -1060,7 +1172,7 @@
   function collectHealthKits() {
     if (player.health >= player.maxHealth) return;
     for (const prop of arenaProps) {
-      if (prop.type !== "health" || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.55) continue;
+      if (prop.type !== "health" || prop.floor !== player.floor || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.55) continue;
       const previousHealth = player.health;
       const kitHealing = 40 + Math.max(0, player.maxHealth - 100) * 0.4;
       player.health = Math.min(player.maxHealth, player.health + kitHealing);
@@ -1079,7 +1191,7 @@
     const objective = activeArena.objective;
     if (objective.type === "collect") {
       for (const prop of arenaProps) {
-        if (prop.type !== "objective" || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.6) continue;
+        if (prop.type !== "objective" || prop.floor !== player.floor || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.6) continue;
         prop.active = false;
         state.objectiveProgress += 1;
         state.score += 75;
@@ -1093,7 +1205,7 @@
       }
     } else if (objective.type === "hold") {
       const point = objective.position;
-      if (distance(player.x, player.y, point.x, point.y) <= 1.05) {
+      if (player.floor === (objective.floor || 0) && distance(player.x, player.y, point.x, point.y) <= 1.05) {
         state.objectiveProgress = Math.min(objective.goal, state.objectiveProgress + dt);
         if (state.objectiveProgress >= objective.goal) {
           state.objectiveComplete = true;
@@ -1153,6 +1265,34 @@
     player.jumpCooldown = 0.18;
     player.landing = 0;
     playTone("jump");
+    return true;
+  }
+
+  function nearestLift(maxDistance = 0.9) {
+    let nearest = null;
+    let best = maxDistance;
+    for (const lift of activeArena.elevators) {
+      const dist = distance(player.x, player.y, lift.x, lift.y);
+      if (dist <= best) {
+        best = dist;
+        nearest = lift;
+      }
+    }
+    return nearest;
+  }
+
+  function useLift() {
+    if (state.mode !== "playing" || player.liftCooldown > 0 || !player.grounded || !nearestLift()) return false;
+    player.floor = (player.floor + 1) % activeArena.floors;
+    player.floorTransition = 0.75;
+    player.liftCooldown = 0.7;
+    player.noticeText = `FLOOR ${player.floor + 1}`;
+    player.noticeFlash = 0.8;
+    player.vx = 0;
+    player.vy = 0;
+    state.effects = [];
+    playTone("lift");
+    updateHud();
     return true;
   }
 
@@ -1216,6 +1356,8 @@
     player.damageCooldown = Math.max(0, player.damageCooldown - dt);
     player.healFlash = Math.max(0, player.healFlash - dt);
     player.noticeFlash = Math.max(0, player.noticeFlash - dt);
+    player.floorTransition = Math.max(0, player.floorTransition - dt);
+    player.liftCooldown = Math.max(0, player.liftCooldown - dt);
     player.jumpCooldown = Math.max(0, player.jumpCooldown - dt);
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
     player.landing = Math.max(0, player.landing - dt * 4.5);
@@ -1301,12 +1443,17 @@
         bot.death = Math.max(0, bot.death - dt * 0.8);
         continue;
       }
+      if (bot.floor !== player.floor) {
+        bot.moveSpeed = 0;
+        bot.aiming = false;
+        continue;
+      }
 
       const distToPlayer = distance(bot.x, bot.y, player.x, player.y);
       const seesPlayer = distToPlayer < 10 && hasLineOfSight(bot.x, bot.y, player.x, player.y);
       if (seesPlayer) {
         bot.alert = 1;
-        if (bot.hp < bot.maxHp * 0.45 && bot.coverCooldown <= 0) {
+        if (bot.type.id !== "boss" && bot.hp < bot.maxHp * 0.45 && bot.coverCooldown <= 0) {
           bot.state = "cover";
           bot.target = nearestCover(bot);
           bot.coverCooldown = 3.5;
@@ -1345,7 +1492,8 @@
         }
       } else if (seesPlayer && distToPlayer < 9.5 && bot.shootTimer <= 0) {
         bot.aiming = true;
-        bot.aimWindup = (0.32 + Math.random() * 0.16) / state.difficulty;
+        const phaseSpeed = bot.type.id === "boss" ? 1 + (bot.phase - 1) * 0.2 : 1;
+        bot.aimWindup = (0.32 + Math.random() * 0.16) / state.difficulty / phaseSpeed;
       }
     }
   }
@@ -1390,14 +1538,16 @@
       bot.moveSpeed = 0;
       return;
     }
-    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * bot.type.speed * state.difficulty * (bot.aiming ? 0.42 : 1) * dt;
+    const phaseSpeed = bot.type.id === "boss" ? 1 + (bot.phase - 1) * 0.18 : 1;
+    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * bot.type.speed * phaseSpeed * state.difficulty * (bot.aiming ? 0.42 : 1) * dt;
     bot.facing = Math.atan2(dy, dx);
     bot.moveSpeed = speed / Math.max(dt, 0.001);
     moveEntity(bot, (dx / len) * speed, (dy / len) * speed, 0.18);
   }
 
   function botShoot(bot, distToPlayer) {
-    bot.shootTimer = (bot.type.fireMin + Math.random() * (bot.type.fireMax - bot.type.fireMin)) / state.difficulty;
+    const phasePower = bot.type.id === "boss" ? 1 + (bot.phase - 1) * 0.2 : 1;
+    bot.shootTimer = (bot.type.fireMin + Math.random() * (bot.type.fireMax - bot.type.fireMin)) / state.difficulty / phasePower;
     bot.flash = 0.11;
     playTone("bot");
     state.effects.push({ type: "tracer", x1: bot.x, y1: bot.y, x2: player.x, y2: player.y, life: 0.08, ttl: 0.08, bot: true });
@@ -1406,7 +1556,7 @@
     const chance = clamp((bot.type.accuracy - distToPlayer * 0.055 - player.recoil * 0.7) * state.difficulty * mercy, 0.22, 0.84);
     if (Math.random() < chance) {
       const baseDamage = bot.type.damageMin + Math.random() * (bot.type.damageMax - bot.type.damageMin);
-      damagePlayer(Math.round(baseDamage * state.difficulty * mercy), bot);
+      damagePlayer(Math.round(baseDamage * state.difficulty * mercy * phasePower), bot);
     }
   }
 
@@ -1420,7 +1570,7 @@
     ui.timer.textContent = formatTime(state.timeLeft);
     ui.score.textContent = String(state.score);
     ui.arena.textContent = activeArena.name;
-    ui.level.textContent = `Level ${activeArenaIndex + 1} / ${ARENAS.length}`;
+    ui.level.textContent = `Level ${activeArenaIndex + 1} / ${ARENAS.length} · Floor ${player.floor + 1} / ${activeArena.floors}`;
     const objective = activeArena.objective;
     if (objective.type === "eliminate") {
       ui.objective.textContent = `${objective.label}: ${state.kills}/${state.bots.length || objective.goal}`;
@@ -1432,6 +1582,16 @@
     ui.mute.setAttribute("aria-label", state.muted ? "Unmute audio" : "Mute audio");
     ui.mute.title = state.muted ? "Unmute audio" : "Mute audio";
     ui.mute.classList.toggle("is-muted", state.muted);
+    const liftReady = state.mode === "playing" && player.liftCooldown <= 0 && Boolean(nearestLift());
+    ui.interaction.classList.toggle("hidden", !liftReady);
+    if (liftReady) ui.interaction.textContent = `E · Lift to floor ${(player.floor + 1) % activeArena.floors + 1}`;
+    const boss = state.bots.find((bot) => bot.type.id === "boss");
+    ui.boss.classList.toggle("hidden", !boss || !boss.alive || (state.mode !== "playing" && state.mode !== "upgrade"));
+    if (boss) {
+      ui.bossHealth.style.width = `${clamp(boss.hp / boss.maxHp, 0, 1) * 100}%`;
+      ui.bossShield.style.width = `${clamp(boss.shield / Math.max(1, boss.maxShield), 0, 1) * 100}%`;
+      ui.bossPhase.textContent = boss.shield > 0 ? "Shielded" : `Phase ${boss.phase}`;
+    }
   }
 
   function render() {
@@ -1445,11 +1605,19 @@
 
     drawWorld(w, h);
     drawArenaProps(w, h);
-    drawSprites(w, h);
+    if (state.countdown <= 0) drawSprites(w, h);
     drawEffects(w, h);
     drawWeapon(w, h);
+    drawFloorTransition(w, h);
     ctx.restore();
     drawRadar();
+  }
+
+  function drawFloorTransition(w, h) {
+    if (player.floorTransition <= 0) return;
+    const progress = player.floorTransition / 0.75;
+    ctx.fillStyle = `rgba(76, 195, 217, ${Math.sin(progress * Math.PI) * 0.42})`;
+    ctx.fillRect(0, 0, w, h);
   }
 
   function cameraHorizon(h) {
@@ -1460,28 +1628,45 @@
   function drawWorld(w, h) {
     const horizon = cameraHorizon(h);
     const floorGrad = ctx.createLinearGradient(0, horizon, 0, h);
-    floorGrad.addColorStop(0, "#6c7880");
-    floorGrad.addColorStop(0.42, "#424d54");
-    floorGrad.addColorStop(1, "#20292f");
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
-    skyGrad.addColorStop(0, activeArena.sky[0]);
-    skyGrad.addColorStop(0.62, activeArena.sky[1]);
-    skyGrad.addColorStop(1, activeArena.sky[2]);
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, w, horizon);
-
-    ctx.fillStyle = "rgba(255, 242, 181, 0.78)";
-    ctx.beginPath();
-    ctx.arc(w * 0.82, horizon * 0.27, Math.max(20, h * 0.055), 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    for (let i = 0; i < 5; i += 1) {
-      const cloudX = ((i * 0.27 + player.a * 0.04) % 1.3) * w - w * 0.12;
-      const cloudY = horizon * (0.14 + (i % 3) * 0.11);
+    const floorTone = player.floor / Math.max(1, activeArena.floors - 1);
+    floorGrad.addColorStop(0, floorTone > 0.7 ? "#78848a" : "#647077");
+    floorGrad.addColorStop(0.42, floorTone > 0.7 ? "#465159" : "#39464e");
+    floorGrad.addColorStop(1, floorTone > 0.7 ? "#20292f" : "#17242b");
+    const topDeck = player.floor === activeArena.floors - 1;
+    if (topDeck) {
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
+      skyGrad.addColorStop(0, activeArena.sky[0]);
+      skyGrad.addColorStop(0.62, activeArena.sky[1]);
+      skyGrad.addColorStop(1, activeArena.sky[2]);
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, horizon);
+      ctx.fillStyle = "rgba(255, 242, 181, 0.78)";
       ctx.beginPath();
-      ctx.ellipse(cloudX, cloudY, w * 0.055, h * 0.018, 0, 0, TAU);
-      ctx.ellipse(cloudX + w * 0.035, cloudY + 2, w * 0.042, h * 0.014, 0, 0, TAU);
+      ctx.arc(w * 0.82, horizon * 0.27, Math.max(20, h * 0.055), 0, TAU);
       ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.28)";
+      for (let i = 0; i < 5; i += 1) {
+        const cloudX = ((i * 0.27 + player.a * 0.04) % 1.3) * w - w * 0.12;
+        const cloudY = horizon * (0.14 + (i % 3) * 0.11);
+        ctx.beginPath();
+        ctx.ellipse(cloudX, cloudY, w * 0.055, h * 0.018, 0, 0, TAU);
+        ctx.ellipse(cloudX + w * 0.035, cloudY + 2, w * 0.042, h * 0.014, 0, 0, TAU);
+        ctx.fill();
+      }
+    } else {
+      const ceilingGrad = ctx.createLinearGradient(0, 0, 0, horizon);
+      ceilingGrad.addColorStop(0, player.floor === 0 ? "#253e48" : "#36505a");
+      ceilingGrad.addColorStop(1, player.floor === 0 ? "#60747b" : "#74888c");
+      ctx.fillStyle = ceilingGrad;
+      ctx.fillRect(0, 0, w, horizon);
+      const panelW = w / 7;
+      for (let i = 0; i < 7; i += 1) {
+        ctx.fillStyle = i % 2 ? "rgba(18, 35, 43, 0.24)" : "rgba(255, 244, 190, 0.09)";
+        ctx.fillRect(i * panelW, 0, panelW * 0.82, horizon * 0.5);
+      }
+      ctx.fillStyle = "rgba(255, 232, 138, 0.5)";
+      ctx.fillRect(w * 0.22, horizon * 0.13, w * 0.14, Math.max(5, h * 0.012));
+      ctx.fillRect(w * 0.64, horizon * 0.13, w * 0.14, Math.max(5, h * 0.012));
     }
     ctx.fillStyle = floorGrad;
     ctx.fillRect(0, horizon, w, h - horizon);
@@ -1499,12 +1684,13 @@
       const shade = clamp(1 - corrected / 14, 0.16, 0.92);
       const sideShade = hit.side ? 0.78 : 1;
       const district = Math.abs(hit.mapX * 7 + hit.mapY * 11) % 4;
+      const deckShift = player.floor * 13;
       const palette = [
         [88, 149, 158],
         [189, 107, 79],
         [91, 123, 161],
         [172, 148, 82]
-      ][district];
+      ][district].map((channel, index) => clamp(channel + (index === 2 ? deckShift : deckShift * 0.35), 0, 255));
       const light = shade * sideShade;
       ctx.fillStyle = `rgb(${Math.floor(palette[0] * light)}, ${Math.floor(palette[1] * light)}, ${Math.floor(palette[2] * light)})`;
       ctx.fillRect(x, top, step, wallH);
@@ -1557,12 +1743,12 @@
 
   function drawArenaProps(w, h) {
     const props = arenaProps
-      .filter((prop) => prop.active !== false)
+      .filter((prop) => prop.active !== false && prop.floor === player.floor)
       .map((prop) => ({ prop, dist: distance(player.x, player.y, prop.x, prop.y) }))
       .sort((a, b) => b.dist - a.dist);
 
     for (const { prop } of props) {
-      const heightScale = prop.type === "lamp" ? 1.05 : prop.type === "zone" ? 0.32 : ["health", "objective"].includes(prop.type) ? 0.5 : 0.58;
+      const heightScale = prop.type === "lamp" ? 1.05 : prop.type === "lift" ? 0.82 : prop.type === "zone" ? 0.32 : ["health", "objective"].includes(prop.type) ? 0.5 : 0.58;
       const p = projectBillboard(prop.x, prop.y, w, h, heightScale);
       if (!p) continue;
       const size = p.projectedH;
@@ -1575,7 +1761,25 @@
       ctx.ellipse(0, 2, size * 0.36, size * 0.09, 0, 0, TAU);
       ctx.fill();
 
-      if (prop.type === "crate") {
+      if (prop.type === "lift") {
+        const pulse = 0.82 + Math.sin(performance.now() * 0.005 + prop.x) * 0.12;
+        ctx.fillStyle = "rgba(76, 195, 217, 0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.48 * pulse, size * 0.13 * pulse, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#263e4c";
+        ctx.beginPath();
+        ctx.roundRect(-size * 0.34, -size * 0.8, size * 0.68, size * 0.78, size * 0.08);
+        ctx.fill();
+        ctx.fillStyle = prop.color;
+        ctx.fillRect(-size * 0.27, -size * 0.72, size * 0.54, size * 0.53);
+        ctx.fillStyle = "#fff9e9";
+        ctx.font = `900 ${Math.max(9, size * 0.15)}px Avenir Next, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("▲", 0, -size * 0.48);
+        ctx.font = `900 ${Math.max(8, size * 0.1)}px Avenir Next, sans-serif`;
+        ctx.fillText(`${player.floor + 1} / ${activeArena.floors}`, 0, -size * 0.3);
+      } else if (prop.type === "crate") {
         ctx.fillStyle = prop.color;
         ctx.fillRect(-size * 0.36, -size * 0.62, size * 0.72, size * 0.62);
         ctx.strokeStyle = "rgba(31, 47, 54, 0.72)";
@@ -1693,7 +1897,7 @@
 
   function drawSprites(w, h) {
     const sprites = state.bots
-      .filter((bot) => bot.alive || bot.death > 0)
+      .filter((bot) => bot.floor === player.floor && (bot.alive || bot.death > 0))
       .map((bot) => ({ bot, dist: distance(player.x, player.y, bot.x, bot.y) }))
       .sort((a, b) => b.dist - a.dist);
 
@@ -1757,6 +1961,13 @@
     ctx.beginPath();
     ctx.ellipse(0, 3 * s, 24 * s * (airborne ? 0.72 : 1), 6 * s, 0, 0, TAU);
     ctx.fill();
+    if (bot.type.id === "boss" && bot.shield > 0) {
+      ctx.strokeStyle = `rgba(101, 224, 239, ${0.55 + Math.sin(performance.now() * 0.01) * 0.18})`;
+      ctx.lineWidth = Math.max(3, 5 * s);
+      ctx.beginPath();
+      ctx.ellipse(0, -bodyH * 0.48, bodyH * 0.36, bodyH * 0.52, 0, 0, TAU);
+      ctx.stroke();
+    }
     ctx.scale(s, s);
     if (!bot.alive) {
       const fall = 1 - alpha;
@@ -2108,7 +2319,7 @@
       }
     }
     for (const prop of arenaProps) {
-      if (prop.active === false || !["health", "objective", "zone"].includes(prop.type)) continue;
+      if (prop.active === false || prop.floor !== player.floor || !["health", "objective", "zone", "lift"].includes(prop.type)) continue;
       rctx.fillStyle = prop.type === "health" ? "#65d18e" : prop.type === "objective" ? "#ffd166" : "#4cc3d9";
       if (prop.type === "zone") {
         rctx.strokeStyle = rctx.fillStyle;
@@ -2116,13 +2327,17 @@
         rctx.beginPath();
         rctx.arc(prop.x * scale, prop.y * scale, Math.max(3, scale * 0.45), 0, TAU);
         rctx.stroke();
+      } else if (prop.type === "lift") {
+        rctx.strokeStyle = "#aee5ee";
+        rctx.lineWidth = 1.5;
+        rctx.strokeRect(prop.x * scale - 3, prop.y * scale - 3, 6, 6);
       } else {
         const size = Math.max(2.5, scale * 0.28);
         rctx.fillRect(prop.x * scale - size / 2, prop.y * scale - size / 2, size, size);
       }
     }
     for (const bot of state.bots) {
-      if (!bot.alive) continue;
+      if (!bot.alive || bot.floor !== player.floor) continue;
       rctx.fillStyle = bot.alert > 0.05 ? "#e65f5f" : "#d99b43";
       rctx.beginPath();
       rctx.arc(bot.x * scale, bot.y * scale, Math.max(2, scale * 0.22), 0, TAU);
@@ -2138,6 +2353,10 @@
     rctx.lineTo((player.x + Math.cos(player.a) * 0.8) * scale, (player.y + Math.sin(player.a) * 0.8) * scale);
     rctx.stroke();
     rctx.restore();
+    rctx.fillStyle = "#aee5ee";
+    rctx.font = "900 10px Avenir Next, sans-serif";
+    rctx.textAlign = "left";
+    rctx.fillText(`F${player.floor + 1}/${activeArena.floors}`, 7, 13);
   }
 
   function initAudio() {
@@ -2253,6 +2472,24 @@
       vol = 0.065;
       osc.type = "triangle";
       osc.frequency.exponentialRampToValueAtTime(760, now + dur);
+    } else if (type === "lift") {
+      freq = 190;
+      dur = 0.34;
+      vol = 0.06;
+      osc.type = "sine";
+      osc.frequency.exponentialRampToValueAtTime(610, now + dur);
+    } else if (type === "shield") {
+      freq = 680;
+      dur = 0.3;
+      vol = 0.07;
+      osc.type = "sawtooth";
+      osc.frequency.exponentialRampToValueAtTime(130, now + dur);
+    } else if (type === "bossPhase") {
+      freq = 130;
+      dur = 0.4;
+      vol = 0.08;
+      osc.type = "square";
+      osc.frequency.exponentialRampToValueAtTime(310, now + dur);
     }
 
     osc.frequency.setValueAtTime(freq, now);
@@ -2327,6 +2564,8 @@
       pauseGame();
     } else if (event.code === "Space" && !event.repeat) {
       jump();
+    } else if (event.code === "KeyE" && !event.repeat) {
+      useLift();
     } else if (event.code === "KeyR") {
       reload();
     } else if (event.code === "Digit1") {
@@ -2442,12 +2681,17 @@
     reload,
     switchWeapon,
     jump,
+    useLift,
     look: handleLook,
     damagePlayer,
     chooseUpgrade,
     killBot(index) {
       const bot = state.bots[index];
       if (bot?.alive) damageBot(bot, 999);
+    },
+    hitBot(index, amount) {
+      const bot = state.bots[index];
+      if (bot?.alive) damageBot(bot, Math.max(0, Number(amount) || 0));
     },
     completeObjective() {
       state.objectiveProgress = activeArena.objective.goal;
@@ -2483,6 +2727,7 @@
         mode: state.mode,
         arena: activeArena.name,
         level: activeArenaIndex + 1,
+        floors: activeArena.floors,
         objective: {
           type: activeArena.objective.type,
           progress: Number(state.objectiveProgress.toFixed(2)),
@@ -2508,6 +2753,8 @@
           z: Number(player.z.toFixed(3)),
           vz: Number(player.vz.toFixed(3)),
           grounded: player.grounded,
+          floor: player.floor,
+          floorTransition: Number(player.floorTransition.toFixed(2)),
           angle: Number(player.a.toFixed(3)),
           healthKits: player.healthKits,
           upgrades: player.upgrades.slice(),
@@ -2515,10 +2762,14 @@
         },
         healthKits: arenaProps
           .filter((prop) => prop.type === "health")
-          .map((prop) => ({ x: prop.x, y: prop.y, active: prop.active !== false })),
+          .map((prop) => ({ x: prop.x, y: prop.y, floor: prop.floor, active: prop.active !== false })),
         botHealth: state.bots.map((bot) => Math.max(0, Math.ceil(bot.hp))),
-        botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name, type: bot.type.id, maxHp: bot.maxHp })),
-        botPositions: state.bots.map((bot) => ({ x: Number(bot.x.toFixed(3)), y: Number(bot.y.toFixed(3)), z: Number(bot.z.toFixed(3)) })),
+        botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name, type: bot.type.id, floor: bot.floor, maxHp: bot.maxHp, shield: bot.shield, phase: bot.phase })),
+        botPositions: state.bots.map((bot) => ({ x: Number(bot.x.toFixed(3)), y: Number(bot.y.toFixed(3)), z: Number(bot.z.toFixed(3)), floor: bot.floor })),
+        lifts: activeArena.elevators.map((lift) => ({ ...lift })),
+        activeProps: arenaProps
+          .filter((prop) => prop.active !== false && ["health", "objective", "zone", "lift"].includes(prop.type))
+          .map((prop) => ({ type: prop.type, x: prop.x, y: prop.y, floor: prop.floor })),
         canvas: { width: canvas.width, height: canvas.height }
       };
     },
@@ -2528,6 +2779,21 @@
         player.y = y;
         player.a = angle;
       }
+    },
+    setFloor(floor) {
+      const nextFloor = clamp(Math.floor(Number(floor) || 0), 0, activeArena.floors - 1);
+      player.floor = nextFloor;
+      player.floorTransition = 0.2;
+      state.effects = [];
+      updateHud();
+    },
+    readyCombat() {
+      state.countdown = 0;
+      player.cooldown = 0;
+      player.reloading = 0;
+      player.health = player.maxHealth;
+      updateCallout();
+      updateHud();
     },
     setBotPosition(index, x, y) {
       const bot = state.bots[index];
