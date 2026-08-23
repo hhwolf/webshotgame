@@ -258,8 +258,6 @@
     speed: 3.0,
     vx: 0,
     vy: 0,
-    moveAngle: spawn.a,
-    moveInputActive: false,
     recoil: 0,
     shake: 0,
     damageFlash: 0,
@@ -593,8 +591,6 @@
       health: 100,
       vx: 0,
       vy: 0,
-      moveAngle: spawn.a,
-      moveInputActive: false,
       recoil: 0,
       shake: 0,
       damageFlash: 0,
@@ -665,7 +661,6 @@
     state.keys.KeyA = false;
     state.keys.KeyS = false;
     state.keys.KeyD = false;
-    player.moveInputActive = false;
     player.vx = 0;
     player.vy = 0;
     document.exitPointerLock?.();
@@ -962,15 +957,9 @@
     const forward = (state.keys.KeyW ? 1 : 0) - (state.keys.KeyS ? 1 : 0);
     const strafe = (state.keys.KeyD ? 1 : 0) - (state.keys.KeyA ? 1 : 0);
     const hasMoveInput = forward !== 0 || strafe !== 0;
-    if (hasMoveInput && !player.moveInputActive) {
-      player.moveAngle = player.a;
-      player.moveInputActive = true;
-    } else if (!hasMoveInput) {
-      player.moveInputActive = false;
-    }
     const inputLength = Math.hypot(forward, strafe) || 1;
-    const targetVx = (Math.cos(player.moveAngle) * forward + Math.cos(player.moveAngle + Math.PI / 2) * strafe) / inputLength * player.speed;
-    const targetVy = (Math.sin(player.moveAngle) * forward + Math.sin(player.moveAngle + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const targetVx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const targetVy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
     const response = 1 - Math.exp(-(hasMoveInput ? 16 : 11) * dt);
     player.vx += (targetVx - player.vx) * response;
     player.vy += (targetVy - player.vy) * response;
@@ -2073,7 +2062,6 @@
           vz: Number(player.vz.toFixed(3)),
           grounded: player.grounded,
           angle: Number(player.a.toFixed(3)),
-          moveAngle: Number(player.moveAngle.toFixed(3)),
           healthKits: player.healthKits
         },
         healthKits: arenaProps

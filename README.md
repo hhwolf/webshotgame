@@ -25,7 +25,7 @@ Open `http://127.0.0.1:4789`.
 
 ## Controls
 
-- `WASD`: move; the movement heading stays locked while movement keys are held so aiming can rotate independently
+- `WASD`: move relative to the current aim direction
 - `Space`: jump
 - Mouse: aim
 - Left click: shoot
