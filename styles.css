@@ -110,6 +110,15 @@ button.primary {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 
+.arena-readout {
+  min-width: 122px;
+}
+
+.arena-readout .value {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
 .label {
   color: #aee5ee;
   display: block;
@@ -263,6 +272,36 @@ button.primary {
   z-index: 2;
 }
 
+.round-callout {
+  color: #fff9e9;
+  left: 50%;
+  pointer-events: none;
+  position: fixed;
+  text-align: center;
+  text-shadow: 0 5px 0 rgba(12, 28, 36, 0.8), 0 0 26px rgba(255, 232, 138, 0.4);
+  top: 34%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.round-callout strong,
+.round-callout span {
+  display: block;
+}
+
+.round-callout strong {
+  color: #ffe88a;
+  font-size: 96px;
+  line-height: 0.9;
+}
+
+.round-callout span {
+  font-size: 17px;
+  font-weight: 900;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
 .panel {
   background: rgba(20, 38, 49, 0.94);
   border: 3px solid rgba(255, 249, 233, 0.28);
@@ -325,7 +364,7 @@ button.primary {
 
 h1,
 h2 {
-  font-size: clamp(34px, 6vw, 58px);
+  font-size: 58px;
   letter-spacing: 0;
   line-height: 0.95;
   margin: 0;
@@ -333,7 +372,7 @@ h2 {
 }
 
 h2 {
-  font-size: clamp(30px, 5vw, 44px);
+  font-size: 44px;
 }
 
 .subhead {
@@ -355,6 +394,14 @@ h2 {
 .scoreboard {
   color: #d9edef;
   margin-top: 18px;
+}
+
+.benchmark-summary {
+  color: #aee5ee;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-top: 12px;
 }
 
 .scoreboard {
@@ -399,6 +446,18 @@ dd {
 }
 
 @media (max-width: 720px) {
+  h1 {
+    font-size: 42px;
+  }
+
+  h2 {
+    font-size: 34px;
+  }
+
+  .round-callout strong {
+    font-size: 68px;
+  }
+
   .hud {
     gap: 8px;
     grid-template-columns: 1fr;
@@ -414,6 +473,14 @@ dd {
   .readout {
     min-width: 70px;
     padding: 6px 7px;
+  }
+
+  .arena-readout {
+    min-width: 112px;
+  }
+
+  .arena-readout .value {
+    font-size: 14px;
   }
 
   .value {

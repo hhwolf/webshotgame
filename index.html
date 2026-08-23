@@ -28,13 +28,17 @@
           </div>
         </div>
         <div class="hud-center">
+          <div class="readout arena-readout">
+            <span class="label">Arena</span>
+            <span id="arenaText" class="value">Cargo Court</span>
+          </div>
           <div class="readout">
             <span class="label">Bots</span>
-            <span id="botsText" class="value">4</span>
+            <span id="botsText" class="value">5</span>
           </div>
           <div class="readout">
             <span class="label">Timer</span>
-            <span id="timerText" class="value">02:30</span>
+            <span id="timerText" class="value">03:00</span>
           </div>
           <div class="readout">
             <span class="label">Score</span>
@@ -54,6 +58,7 @@
       </div>
       <div id="hitMarker" class="hit-marker hidden" aria-hidden="true">x</div>
       <div id="damageVignette" class="damage-vignette hidden" aria-hidden="true"></div>
+      <div id="roundCallout" class="round-callout hidden" aria-live="assertive"></div>
 
       <section id="menu" class="panel menu">
         <div class="brand-icon" aria-hidden="true">
@@ -102,8 +107,10 @@
         <h2 id="roundTitle">Round Complete</h2>
         <p id="roundSummary" class="subhead"></p>
         <div id="scoreboard" class="scoreboard"></div>
+        <div id="benchmarkSummary" class="benchmark-summary"></div>
         <div class="menu-actions">
           <button id="restartButton" class="primary" type="button">Restart Round</button>
+          <button id="copyReportButton" type="button">Copy Playtest Report</button>
           <button id="menuButton" type="button">Main Menu</button>
         </div>
       </section>

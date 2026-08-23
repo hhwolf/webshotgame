@@ -17,6 +17,7 @@
     bots: document.getElementById("botsText"),
     timer: document.getElementById("timerText"),
     score: document.getElementById("scoreText"),
+    arena: document.getElementById("arenaText"),
     best: document.getElementById("bestStats"),
     controls: document.getElementById("controlsPanel"),
     crosshair: document.getElementById("crosshair"),
@@ -25,7 +26,9 @@
     mute: document.getElementById("muteButton"),
     roundTitle: document.getElementById("roundTitle"),
     roundSummary: document.getElementById("roundSummary"),
-    scoreboard: document.getElementById("scoreboard")
+    scoreboard: document.getElementById("scoreboard"),
+    benchmark: document.getElementById("benchmarkSummary"),
+    callout: document.getElementById("roundCallout")
   };
 
   const buttons = {
@@ -34,62 +37,138 @@
     resume: document.getElementById("resumeButton"),
     restartPause: document.getElementById("restartPauseButton"),
     restart: document.getElementById("restartButton"),
+    copyReport: document.getElementById("copyReportButton"),
     menu: document.getElementById("menuButton")
   };
 
-  const MAP = [
-    "1111111111111111",
-    "1000000001000001",
-    "1011110101001101",
-    "1000010100000101",
-    "1011010111110101",
-    "1010000000010001",
-    "1010111111011111",
-    "1000100001000001",
-    "1110101101011101",
-    "1000001101000001",
-    "1011100000010111",
-    "1000001110000001",
-    "1111111111111111"
+  const ARENAS = [
+    {
+      name: "Cargo Court",
+      sky: ["#78c9e8", "#b7e2e7", "#f4d58b"],
+      grid: [
+        "1111111111111111",
+        "1000000001000001",
+        "1011110101001101",
+        "1000010100000101",
+        "1011010111110101",
+        "1010000000010001",
+        "1010111111011111",
+        "1000100001000001",
+        "1110101101011101",
+        "1000001101000001",
+        "1011100000010111",
+        "1000001110000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.1 },
+      botSpawns: [{ x: 13.2, y: 1.7 }, { x: 13.2, y: 9.4 }, { x: 2.0, y: 11.0 }, { x: 8.7, y: 5.4 }, { x: 5.5, y: 9.5 }],
+      patrolRoutes: [
+        [{ x: 12.5, y: 1.5 }, { x: 10.5, y: 5.3 }, { x: 13.5, y: 5.3 }],
+        [{ x: 13.5, y: 9.5 }, { x: 11.5, y: 11.0 }, { x: 8.5, y: 9.5 }],
+        [{ x: 2.0, y: 11.0 }, { x: 5.0, y: 11.0 }, { x: 5.5, y: 9.5 }],
+        [{ x: 8.5, y: 5.5 }, { x: 4.5, y: 5.5 }, { x: 3.5, y: 7.5 }],
+        [{ x: 5.5, y: 9.5 }, { x: 9.5, y: 11.0 }, { x: 12.5, y: 11.0 }]
+      ],
+      coverPoints: [{ x: 8.5, y: 1.5 }, { x: 4.5, y: 3.5 }, { x: 12.5, y: 5.4 }, { x: 3.5, y: 7.4 }, { x: 10.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 12.5, y: 11.0 }],
+      props: [
+        { x: 7.55, y: 1.55, type: "crate", color: "#f2b84b", label: "A" },
+        { x: 10.5, y: 3.45, type: "barrel", color: "#4cc3d9" },
+        { x: 3.45, y: 5.5, type: "crate", color: "#ec6d5f", label: "B" },
+        { x: 7.5, y: 7.45, type: "barrel", color: "#f2b84b" },
+        { x: 13.45, y: 7.5, type: "sign", color: "#65d18e", label: "EAST" },
+        { x: 4.5, y: 9.5, type: "crate", color: "#4cc3d9", label: "C" },
+        { x: 9.5, y: 11.0, type: "cone", color: "#ff8a4c" },
+        { x: 3.5, y: 8.5, type: "lamp", color: "#ffe88a" }
+      ]
+    },
+    {
+      name: "Sunset Yard",
+      sky: ["#77b9e8", "#d4c9ed", "#ffcf8b"],
+      grid: [
+        "1111111111111111",
+        "1000000000000001",
+        "1011110011110101",
+        "1000010000010001",
+        "1010011110011101",
+        "1010000000000001",
+        "1011100111100101",
+        "1000000100000101",
+        "1011110101110101",
+        "1000000001000001",
+        "1011011101011101",
+        "1000000000000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.08 },
+      botSpawns: [{ x: 13.5, y: 1.5 }, { x: 13.5, y: 5.5 }, { x: 1.5, y: 11.0 }, { x: 8.5, y: 7.5 }, { x: 5.5, y: 9.5 }],
+      patrolRoutes: [
+        [{ x: 13.5, y: 1.5 }, { x: 10.5, y: 3.5 }, { x: 6.5, y: 1.5 }],
+        [{ x: 13.5, y: 5.5 }, { x: 12.5, y: 7.5 }, { x: 14.5, y: 9.5 }],
+        [{ x: 1.5, y: 11.0 }, { x: 5.5, y: 11.0 }, { x: 8.5, y: 11.0 }],
+        [{ x: 8.5, y: 7.5 }, { x: 10.5, y: 7.5 }, { x: 8.5, y: 9.5 }],
+        [{ x: 5.5, y: 9.5 }, { x: 6.5, y: 5.5 }, { x: 10.5, y: 5.5 }]
+      ],
+      coverPoints: [{ x: 6.5, y: 1.5 }, { x: 4.5, y: 3.5 }, { x: 12.5, y: 5.5 }, { x: 6.5, y: 7.5 }, { x: 8.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 12.5, y: 11.0 }],
+      props: [
+        { x: 5.4, y: 1.5, type: "sign", color: "#ffd166", label: "YARD" },
+        { x: 10.5, y: 3.5, type: "crate", color: "#9d8df1", label: "D" },
+        { x: 3.5, y: 5.5, type: "barrel", color: "#ff7f6e" },
+        { x: 11.5, y: 5.5, type: "crate", color: "#4cc3d9", label: "E" },
+        { x: 6.5, y: 7.5, type: "cone", color: "#ff9f43" },
+        { x: 8.5, y: 9.5, type: "barrel", color: "#9d8df1" },
+        { x: 12.5, y: 11.0, type: "lamp", color: "#ffe88a" }
+      ]
+    },
+    {
+      name: "Canal Works",
+      sky: ["#62c7d7", "#a8e3d3", "#f7e39a"],
+      grid: [
+        "1111111111111111",
+        "1000000000000001",
+        "1011011110111101",
+        "1001000010000001",
+        "1101011010110101",
+        "1000010010000101",
+        "1011110011110101",
+        "1000000000000001",
+        "1011011110101101",
+        "1001000010000001",
+        "1011111011110101",
+        "1000000000000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.12 },
+      botSpawns: [{ x: 13.5, y: 1.5 }, { x: 14.2, y: 3.5 }, { x: 1.5, y: 11.0 }, { x: 8.5, y: 7.5 }, { x: 5.5, y: 9.5 }],
+      patrolRoutes: [
+        [{ x: 13.5, y: 1.5 }, { x: 9.5, y: 3.5 }, { x: 13.5, y: 3.5 }],
+        [{ x: 14.2, y: 3.5 }, { x: 14.2, y: 7.5 }, { x: 13.5, y: 9.5 }],
+        [{ x: 1.5, y: 11.0 }, { x: 7.5, y: 11.0 }, { x: 10.5, y: 11.0 }],
+        [{ x: 8.5, y: 7.5 }, { x: 6.5, y: 7.5 }, { x: 4.5, y: 7.5 }],
+        [{ x: 5.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 1.5, y: 11.0 }]
+      ],
+      coverPoints: [{ x: 5.5, y: 1.5 }, { x: 9.5, y: 3.5 }, { x: 14.2, y: 5.5 }, { x: 4.5, y: 7.5 }, { x: 13.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 10.5, y: 11.0 }],
+      props: [
+        { x: 5.5, y: 1.5, type: "barrel", color: "#65d18e" },
+        { x: 10.5, y: 1.5, type: "sign", color: "#4cc3d9", label: "CANAL" },
+        { x: 9.5, y: 3.5, type: "crate", color: "#f2b84b", label: "F" },
+        { x: 14.2, y: 5.5, type: "lamp", color: "#ffe88a" },
+        { x: 4.5, y: 7.5, type: "crate", color: "#65d18e", label: "G" },
+        { x: 13.5, y: 9.5, type: "cone", color: "#ff8a4c" },
+        { x: 10.5, y: 11.0, type: "barrel", color: "#4cc3d9" }
+      ]
+    }
   ];
 
-  const mapH = MAP.length;
-  const mapW = MAP[0].length;
-  const spawn = { x: 1.7, y: 1.7, a: 0.1 };
-  const botSpawns = [
-    { x: 13.2, y: 1.7 },
-    { x: 13.2, y: 9.4 },
-    { x: 2.0, y: 11.0 },
-    { x: 8.7, y: 5.4 },
-    { x: 5.5, y: 9.5 }
-  ];
-  const patrolRoutes = [
-    [{ x: 12.5, y: 1.5 }, { x: 10.5, y: 5.3 }, { x: 13.5, y: 5.3 }],
-    [{ x: 13.5, y: 9.5 }, { x: 11.5, y: 11.0 }, { x: 8.5, y: 9.5 }],
-    [{ x: 2.0, y: 11.0 }, { x: 5.0, y: 11.0 }, { x: 5.5, y: 9.5 }],
-    [{ x: 8.5, y: 5.5 }, { x: 4.5, y: 5.5 }, { x: 3.5, y: 7.5 }],
-    [{ x: 5.5, y: 9.5 }, { x: 9.5, y: 11.0 }, { x: 12.5, y: 11.0 }]
-  ];
-  const coverPoints = [
-    { x: 8.5, y: 1.5 },
-    { x: 4.5, y: 3.5 },
-    { x: 12.5, y: 5.4 },
-    { x: 3.5, y: 7.4 },
-    { x: 10.5, y: 9.5 },
-    { x: 5.5, y: 11.0 },
-    { x: 12.5, y: 11.0 }
-  ];
-
-  const arenaProps = [
-    { x: 7.55, y: 1.55, type: "crate", color: "#f2b84b", label: "A" },
-    { x: 10.5, y: 3.45, type: "barrel", color: "#4cc3d9" },
-    { x: 2.45, y: 5.5, type: "crate", color: "#ec6d5f", label: "B" },
-    { x: 7.5, y: 7.45, type: "barrel", color: "#f2b84b" },
-    { x: 13.45, y: 7.5, type: "sign", color: "#65d18e", label: "EAST" },
-    { x: 4.5, y: 9.5, type: "crate", color: "#4cc3d9", label: "C" },
-    { x: 9.5, y: 11.0, type: "cone", color: "#ff8a4c" },
-    { x: 1.55, y: 8.5, type: "lamp", color: "#ffe88a" }
-  ];
+  let activeArenaIndex = 0;
+  let activeArena = ARENAS[activeArenaIndex];
+  let MAP = activeArena.grid;
+  let mapH = MAP.length;
+  let mapW = MAP[0].length;
+  let spawn = activeArena.spawn;
+  let botSpawns = activeArena.botSpawns;
+  let patrolRoutes = activeArena.patrolRoutes;
+  let coverPoints = activeArena.coverPoints;
+  let arenaProps = activeArena.props;
 
   const botPalettes = [
     { suit: "#e9625b", dark: "#8c3340", vest: "#263b52", trim: "#ffd166", skin: "#f2bd8f" },
@@ -98,6 +177,7 @@
     { suit: "#e36f45", dark: "#893a38", vest: "#2f3b55", trim: "#ffd166", skin: "#9f5f44" },
     { suit: "#da5e58", dark: "#7d3240", vest: "#2b4854", trim: "#8ce99a", skin: "#e3a578" }
   ];
+  const botNames = ["Rook", "Vex", "Pico", "Dash", "Mako"];
 
   const weapons = [
     {
@@ -128,6 +208,9 @@
     }
   ];
 
+  const METRICS_KEY = "tacticalArena.playtestMetrics.v1";
+  const CORE_CONTROLS = ["move", "aim", "shoot", "jump"];
+
   const state = {
     mode: "menu",
     keys: Object.create(null),
@@ -141,9 +224,17 @@
     effects: [],
     score: 0,
     kills: 0,
-    roundDuration: 150,
-    timeLeft: 150,
+    roundDuration: 180,
+    timeLeft: 180,
     elapsed: 0,
+    countdown: 0,
+    arenaSequence: 0,
+    lastRoundEndedAt: 0,
+    roundControls: new Set(),
+    metrics: loadMetrics(),
+    fps: 60,
+    fpsFrames: 0,
+    fpsElapsed: 0,
     bestScore: Number(localStorage.getItem("tacticalArena.bestScore") || 0),
     bestTime: Number(localStorage.getItem("tacticalArena.fastestClear") || 0),
     muted: localStorage.getItem("tacticalArena.muted") === "true",
@@ -158,7 +249,9 @@
     a: spawn.a,
     health: 100,
     radius: 0.18,
-    speed: 2.6,
+    speed: 3.0,
+    vx: 0,
+    vy: 0,
     recoil: 0,
     shake: 0,
     damageFlash: 0,
@@ -175,6 +268,7 @@
     grounded: true,
     landing: 0,
     jumpCooldown: 0,
+    jumpBuffer: 0,
     damageAngle: 0
   };
 
@@ -202,6 +296,147 @@
     const m = Math.floor(s / 60);
     const r = s % 60;
     return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+  }
+
+  function loadMetrics() {
+    const defaults = {
+      version: 1,
+      testerId: `TA-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      starts: 0,
+      completed: 0,
+      wins: 0,
+      firstRoundWon: null,
+      replays: 0,
+      controlRounds: 0,
+      totalDuration: 0,
+      fpsTotal: 0,
+      fpsSamples: 0,
+      errors: 0,
+      mapsPlayed: {}
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(METRICS_KEY) || "null");
+      if (!saved || typeof saved !== "object") return defaults;
+      return { ...defaults, ...saved, mapsPlayed: { ...defaults.mapsPlayed, ...(saved.mapsPlayed || {}) } };
+    } catch (_error) {
+      return defaults;
+    }
+  }
+
+  function saveMetrics() {
+    try {
+      localStorage.setItem(METRICS_KEY, JSON.stringify(state.metrics));
+    } catch (_error) {
+      // The game remains playable when storage is unavailable.
+    }
+  }
+
+  function markControl(name) {
+    if (state.mode === "playing") state.roundControls.add(name);
+  }
+
+  function percent(part, whole) {
+    return whole > 0 ? Math.round(part / whole * 100) : 0;
+  }
+
+  function metricSnapshot() {
+    const metrics = state.metrics;
+    return {
+      testerId: metrics.testerId,
+      roundsStarted: metrics.starts,
+      roundsCompleted: metrics.completed,
+      roundsAbandoned: Math.max(0, metrics.starts - metrics.completed),
+      wins: metrics.wins,
+      firstRoundWon: metrics.firstRoundWon,
+      completionRate: percent(metrics.completed, metrics.starts),
+      winRate: percent(metrics.wins, metrics.completed),
+      replayRate: percent(metrics.replays, metrics.completed),
+      controlMasteryRate: percent(metrics.controlRounds, metrics.completed),
+      averageRoundSeconds: metrics.completed ? Number((metrics.totalDuration / metrics.completed).toFixed(1)) : 0,
+      averageFps: metrics.fpsSamples ? Math.round(metrics.fpsTotal / metrics.fpsSamples) : 0,
+      errors: metrics.errors,
+      mapsPlayed: metrics.mapsPlayed
+    };
+  }
+
+  function buildPlaytestReport() {
+    return JSON.stringify({
+      game: "Tactical Arena",
+      build: "1.1-cartoon",
+      recordedAt: new Date().toISOString(),
+      targets: {
+        completionRate: ">= 75%",
+        replayRate: ">= 45%",
+        firstRoundWinRate: "15-25% across testers",
+        controlMasteryRate: ">= 80%",
+        desktopFps: ">= 55"
+      },
+      result: metricSnapshot(),
+      device: {
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        pixelRatio: window.devicePixelRatio || 1,
+        platform: navigator.platform || "unknown"
+      }
+    }, null, 2);
+  }
+
+  function selectArena(index) {
+    activeArenaIndex = ((index % ARENAS.length) + ARENAS.length) % ARENAS.length;
+    activeArena = ARENAS[activeArenaIndex];
+    MAP = activeArena.grid;
+    mapH = MAP.length;
+    mapW = MAP[0].length;
+    spawn = activeArena.spawn;
+    botSpawns = activeArena.botSpawns;
+    patrolRoutes = activeArena.patrolRoutes;
+    coverPoints = activeArena.coverPoints;
+    arenaProps = activeArena.props;
+  }
+
+  function validateArenas() {
+    return ARENAS.map((arena) => {
+      const errors = [];
+      const height = arena.grid.length;
+      const width = arena.grid[0]?.length || 0;
+      const points = [
+        ["player spawn", arena.spawn],
+        ...arena.botSpawns.map((point, index) => [`bot spawn ${index + 1}`, point]),
+        ...arena.patrolRoutes.flatMap((route, routeIndex) => route.map((point, pointIndex) => [`route ${routeIndex + 1}.${pointIndex + 1}`, point])),
+        ...arena.coverPoints.map((point, index) => [`cover ${index + 1}`, point]),
+        ...arena.props.map((point, index) => [`prop ${index + 1}`, point])
+      ];
+      const wallAt = (x, y) => {
+        const gx = Math.floor(x);
+        const gy = Math.floor(y);
+        return gx < 0 || gy < 0 || gx >= width || gy >= height || arena.grid[gy][gx] === "1";
+      };
+      if (arena.grid.some((row) => row.length !== width)) errors.push("rows have inconsistent widths");
+      for (const [label, point] of points) {
+        if (wallAt(point.x, point.y)) errors.push(`${label} is inside a wall`);
+      }
+
+      const start = { x: Math.floor(arena.spawn.x), y: Math.floor(arena.spawn.y) };
+      const queue = [start];
+      const visited = new Set([cellKey(start.x, start.y)]);
+      const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (let index = 0; index < queue.length; index += 1) {
+        const cell = queue[index];
+        for (const [dx, dy] of directions) {
+          const x = cell.x + dx;
+          const y = cell.y + dy;
+          const key = cellKey(x, y);
+          if (wallAt(x + 0.5, y + 0.5) || visited.has(key)) continue;
+          visited.add(key);
+          queue.push({ x, y });
+        }
+      }
+      for (const [label, point] of points.slice(1)) {
+        if (!wallAt(point.x, point.y) && !visited.has(cellKey(Math.floor(point.x), Math.floor(point.y)))) {
+          errors.push(`${label} is unreachable`);
+        }
+      }
+      return { name: arena.name, valid: errors.length === 0, errors };
+    });
   }
 
   function isWall(x, y) {
@@ -286,6 +521,17 @@
     ui.round.classList.toggle("hidden", mode !== "won" && mode !== "lost");
     ui.hud.classList.toggle("hidden", mode !== "playing");
     ui.crosshair.classList.toggle("hidden", mode !== "playing");
+    if (mode !== "playing") ui.callout.classList.add("hidden");
+  }
+
+  function updateCallout() {
+    if (state.mode !== "playing" || state.countdown <= 0) {
+      ui.callout.classList.add("hidden");
+      return;
+    }
+    const count = Math.max(1, Math.ceil(state.countdown));
+    ui.callout.innerHTML = `<strong>${count}</strong><span>${activeArena.name}</span>`;
+    ui.callout.classList.remove("hidden");
   }
 
   function updateBestStats() {
@@ -296,6 +542,7 @@
   function makeBot(index, spot) {
     return {
       id: index + 1,
+      name: botNames[index % botNames.length],
       x: spot.x,
       y: spot.y,
       hp: 100,
@@ -308,6 +555,8 @@
       pathTimer: 0,
       target: patrolRoutes[index % patrolRoutes.length][0],
       shootTimer: 0.6 + Math.random() * 0.8,
+      aiming: false,
+      aimWindup: 0,
       flash: 0,
       alert: 0,
       coverCooldown: 0,
@@ -324,11 +573,15 @@
   }
 
   function resetRound() {
+    selectArena(state.arenaSequence % ARENAS.length);
+    state.arenaSequence += 1;
     Object.assign(player, {
       x: spawn.x,
       y: spawn.y,
       a: spawn.a,
       health: 100,
+      vx: 0,
+      vy: 0,
       recoil: 0,
       shake: 0,
       damageFlash: 0,
@@ -345,6 +598,7 @@
       grounded: true,
       landing: 0,
       jumpCooldown: 0,
+      jumpBuffer: 0,
       damageAngle: 0
     });
     state.bots = botSpawns.map((spot, index) => makeBot(index, spot));
@@ -353,6 +607,8 @@
     state.kills = 0;
     state.timeLeft = state.roundDuration;
     state.elapsed = 0;
+    state.countdown = 2.4;
+    state.roundControls = new Set();
     state.lastShotHeld = false;
     ui.hitMarker.classList.add("hidden");
     ui.damage.classList.add("hidden");
@@ -361,15 +617,24 @@
 
   function startRound() {
     initAudio();
+    if (state.lastRoundEndedAt > 0 && Date.now() - state.lastRoundEndedAt < 60000) {
+      state.metrics.replays += 1;
+    }
     resetRound();
+    state.metrics.starts += 1;
+    state.metrics.mapsPlayed[activeArena.name] = (state.metrics.mapsPlayed[activeArena.name] || 0) + 1;
+    saveMetrics();
     showOnly("playing");
-    playTone("round");
+    updateCallout();
     requestPointer();
   }
 
   function requestPointer() {
     if (state.pointerSupported && document.pointerLockElement !== canvas) {
-      canvas.requestPointerLock?.();
+      const request = canvas.requestPointerLock?.();
+      request?.catch?.(() => {
+        // Drag aiming remains available when pointer lock is denied.
+      });
     }
   }
 
@@ -391,6 +656,16 @@
     document.exitPointerLock?.();
     playTone(won ? "win" : "lose");
 
+    if (state.metrics.completed === 0) state.metrics.firstRoundWon = won;
+    state.metrics.completed += 1;
+    if (won) state.metrics.wins += 1;
+    if (CORE_CONTROLS.every((control) => state.roundControls.has(control))) state.metrics.controlRounds += 1;
+    state.metrics.totalDuration += state.elapsed;
+    state.metrics.fpsTotal += state.fps;
+    state.metrics.fpsSamples += 1;
+    state.lastRoundEndedAt = Date.now();
+    saveMetrics();
+
     const timeUsed = state.elapsed;
     const timeBonus = won ? Math.ceil(state.timeLeft) * 3 : 0;
     const finalScore = state.score + timeBonus + (won ? 250 : 0);
@@ -406,12 +681,16 @@
     ui.roundTitle.textContent = won ? "Round Won" : "Round Lost";
     ui.roundSummary.textContent = reason;
     ui.scoreboard.innerHTML = [
+      `<div>Arena: ${activeArena.name}</div>`,
       `<div>Kills: ${state.kills} / ${state.bots.length}</div>`,
       `<div>Base score: ${state.score}</div>`,
       `<div>Time bonus: ${timeBonus}</div>`,
       `<div>Final score: ${finalScore}</div>`,
       `<div>Clear time: ${timeUsed.toFixed(1)}s</div>`
     ].join("");
+    const snapshot = metricSnapshot();
+    ui.benchmark.textContent = `Playtest: ${snapshot.completionRate}% completion | ${snapshot.winRate}% wins | ${snapshot.replayRate}% replay | ${snapshot.averageFps} FPS`;
+    buttons.copyReport.textContent = "Copy Playtest Report";
     updateBestStats();
   }
 
@@ -422,6 +701,7 @@
   function switchWeapon(index) {
     if (index < 0 || index >= weapons.length || player.weaponIndex === index) return;
     player.weaponIndex = index;
+    markControl("switch");
     player.reloading = 0;
     player.cooldown = Math.min(player.cooldown, 0.12);
     playTone("switch");
@@ -432,6 +712,7 @@
     const weapon = currentWeapon();
     const index = player.weaponIndex;
     if (player.reloading > 0 || player.ammo[index] >= weapon.magSize || player.reserve[index] <= 0) return;
+    markControl("reload");
     player.reloading = weapon.reload;
     playTone("reload");
     updateHud();
@@ -449,7 +730,8 @@
   }
 
   function shoot() {
-    if (state.mode !== "playing") return false;
+    if (state.mode !== "playing" || state.countdown > 0) return false;
+    markControl("shoot");
     const weapon = currentWeapon();
     const index = player.weaponIndex;
     if (player.reloading > 0 || player.cooldown > 0) return false;
@@ -508,6 +790,7 @@
     playTone("hit");
     if (bot.hp <= 0 && bot.alive) {
       bot.alive = false;
+      bot.aiming = false;
       bot.death = 1;
       state.kills += 1;
       state.score += 100;
@@ -533,7 +816,12 @@
   }
 
   function jump() {
-    if (state.mode !== "playing" || !player.grounded || player.jumpCooldown > 0) return false;
+    if (state.mode !== "playing") return false;
+    markControl("jump");
+    if (!player.grounded || player.jumpCooldown > 0) {
+      player.jumpBuffer = 0.12;
+      return false;
+    }
     player.grounded = false;
     player.vz = 4.9;
     player.jumpCooldown = 0.18;
@@ -579,11 +867,18 @@
   function update(dt) {
     if (state.mode !== "playing") return;
 
-    state.timeLeft -= dt;
-    state.elapsed += dt;
-    if (state.timeLeft <= 0) {
-      finishRound(false, "The timer expired.");
-      return;
+    if (state.countdown > 0) {
+      const previous = state.countdown;
+      state.countdown = Math.max(0, state.countdown - dt);
+      updateCallout();
+      if (previous > 0 && state.countdown === 0) playTone("round");
+    } else {
+      state.timeLeft -= dt;
+      state.elapsed += dt;
+      if (state.timeLeft <= 0) {
+        finishRound(false, "The timer expired.");
+        return;
+      }
     }
 
     player.cooldown = Math.max(0, player.cooldown - dt);
@@ -593,6 +888,7 @@
     player.hitMarker = Math.max(0, player.hitMarker - dt);
     player.damageFlash = Math.max(0, player.damageFlash - dt);
     player.jumpCooldown = Math.max(0, player.jumpCooldown - dt);
+    player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
     player.landing = Math.max(0, player.landing - dt * 4.5);
     ui.hitMarker.classList.toggle("hidden", player.hitMarker <= 0);
     ui.damage.classList.toggle("hidden", player.damageFlash <= 0);
@@ -613,22 +909,31 @@
         player.landing = clamp(impact / 7, 0.35, 0.85);
         player.shake = Math.max(player.shake, 2.2);
         playTone("land");
+        if (player.jumpBuffer > 0) jump();
       }
     }
 
     const forward = (state.keys.KeyW ? 1 : 0) - (state.keys.KeyS ? 1 : 0);
     const strafe = (state.keys.KeyD ? 1 : 0) - (state.keys.KeyA ? 1 : 0);
-    if (forward || strafe) {
-      const len = Math.hypot(forward, strafe) || 1;
-      const speed = player.speed * dt;
-      const dx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / len * speed;
-      const dy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / len * speed;
-      moveEntity(player, dx, dy, player.radius);
-      player.bob += dt * 10;
+    const inputLength = Math.hypot(forward, strafe) || 1;
+    const targetVx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const targetVy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const response = 1 - Math.exp(-(forward || strafe ? 16 : 11) * dt);
+    player.vx += (targetVx - player.vx) * response;
+    player.vy += (targetVy - player.vy) * response;
+    const movingSpeed = Math.hypot(player.vx, player.vy);
+    if (forward || strafe) markControl("move");
+    if (movingSpeed > 0.04) {
+      const oldX = player.x;
+      const oldY = player.y;
+      moveEntity(player, player.vx * dt, player.vy * dt, player.radius);
+      if (Math.abs(player.x - oldX) < Math.abs(player.vx * dt) * 0.15) player.vx *= 0.25;
+      if (Math.abs(player.y - oldY) < Math.abs(player.vy * dt) * 0.15) player.vy *= 0.25;
+      player.bob += dt * (8 + movingSpeed * 1.4);
     }
 
     if (state.pointerDown && currentWeapon().auto) shoot();
-    updateBots(dt);
+    if (state.countdown <= 0) updateBots(dt);
 
     for (const effect of state.effects) effect.life -= dt;
     state.effects = state.effects.filter((effect) => effect.life > 0);
@@ -693,8 +998,15 @@
         bot.jumpTimer = 3.5 + Math.random() * 4;
       }
 
-      if (seesPlayer && distToPlayer < 9.5 && bot.shootTimer <= 0) {
-        botShoot(bot, distToPlayer);
+      if (bot.aiming) {
+        bot.aimWindup -= dt;
+        if (bot.aimWindup <= 0) {
+          bot.aiming = false;
+          if (seesPlayer && distToPlayer < 9.5) botShoot(bot, distToPlayer);
+        }
+      } else if (seesPlayer && distToPlayer < 9.5 && bot.shootTimer <= 0) {
+        bot.aiming = true;
+        bot.aimWindup = 0.32 + Math.random() * 0.16;
       }
     }
   }
@@ -739,7 +1051,7 @@
       bot.moveSpeed = 0;
       return;
     }
-    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * dt;
+    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * (bot.aiming ? 0.42 : 1) * dt;
     bot.facing = Math.atan2(dy, dx);
     bot.moveSpeed = speed / Math.max(dt, 0.001);
     moveEntity(bot, (dx / len) * speed, (dy / len) * speed, 0.18);
@@ -766,6 +1078,7 @@
     ui.bots.textContent = String(state.bots.filter((bot) => bot.alive).length);
     ui.timer.textContent = formatTime(state.timeLeft);
     ui.score.textContent = String(state.score);
+    ui.arena.textContent = activeArena.name;
     ui.mute.setAttribute("aria-label", state.muted ? "Unmute audio" : "Mute audio");
     ui.mute.title = state.muted ? "Unmute audio" : "Mute audio";
     ui.mute.classList.toggle("is-muted", state.muted);
@@ -801,9 +1114,9 @@
     floorGrad.addColorStop(0.42, "#424d54");
     floorGrad.addColorStop(1, "#20292f");
     const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
-    skyGrad.addColorStop(0, "#78c9e8");
-    skyGrad.addColorStop(0.62, "#b7e2e7");
-    skyGrad.addColorStop(1, "#f4d58b");
+    skyGrad.addColorStop(0, activeArena.sky[0]);
+    skyGrad.addColorStop(0.62, activeArena.sky[1]);
+    skyGrad.addColorStop(1, activeArena.sky[2]);
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, w, horizon);
 
@@ -1012,6 +1325,12 @@
       if (bot.alive) {
         const barW = bodyW * 0.75;
         const barY = footY - bodyH - 8;
+        if (bodyH > 28 && state.countdown <= 0) {
+          ctx.fillStyle = "rgba(10, 23, 30, 0.82)";
+          ctx.font = `800 ${clamp(bodyH * 0.105, 9, 14)}px Avenir Next, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(bot.name, screenX, barY - 5);
+        }
         ctx.fillStyle = "rgba(0,0,0,0.55)";
         ctx.fillRect(screenX - barW / 2, barY, barW, 4);
         ctx.fillStyle = "#2bc4a7";
@@ -1145,6 +1464,28 @@
       ctx.arc(0, -87, 6, 0.12, Math.PI - 0.12);
     }
     ctx.stroke();
+
+    ctx.fillStyle = palette.trim;
+    ctx.beginPath();
+    ctx.arc(0, -59, 7, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = "#142631";
+    ctx.font = "900 9px Avenir Next, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(bot.id), 0, -59);
+
+    if (bot.aiming) {
+      const pulse = 1 + Math.sin(bot.anim * 8) * 0.08;
+      ctx.strokeStyle = "#ffef8a";
+      ctx.fillStyle = "#ffef8a";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, -119, 10 * pulse, Math.PI * 0.15, Math.PI * 0.85, true);
+      ctx.stroke();
+      ctx.font = "900 13px Avenir Next, sans-serif";
+      ctx.fillText("!", 0, -119);
+    }
 
     if (bot.hurt > 0) {
       ctx.strokeStyle = `rgba(255, 246, 184, ${bot.hurt * 4})`;
@@ -1458,6 +1799,13 @@
   function loop(now) {
     const dt = Math.min(0.05, (now - state.lastTime) / 1000 || 0);
     state.lastTime = now;
+    state.fpsFrames += 1;
+    state.fpsElapsed += dt;
+    if (state.fpsElapsed >= 0.5) {
+      state.fps = Math.round(state.fpsFrames / state.fpsElapsed);
+      state.fpsFrames = 0;
+      state.fpsElapsed = 0;
+    }
     update(dt);
     render();
     requestAnimationFrame(loop);
@@ -1465,7 +1813,26 @@
 
   function handleLook(dx) {
     if (state.mode !== "playing") return;
+    if (Math.abs(dx) > 0.25) markControl("aim");
     player.a = normalizeAngle(player.a + dx * 0.0024);
+  }
+
+  async function copyPlaytestReport() {
+    const report = buildPlaytestReport();
+    try {
+      await navigator.clipboard.writeText(report);
+    } catch (_error) {
+      const textarea = document.createElement("textarea");
+      textarea.value = report;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    buttons.copyReport.textContent = "Report Copied";
   }
 
   document.addEventListener("keydown", (event) => {
@@ -1548,6 +1915,7 @@
   buttons.resume.addEventListener("click", resumeGame);
   buttons.restartPause.addEventListener("click", startRound);
   buttons.restart.addEventListener("click", startRound);
+  buttons.copyReport.addEventListener("click", copyPlaytestReport);
   buttons.menu.addEventListener("click", () => {
     showOnly("menu");
     updateBestStats();
@@ -1559,6 +1927,14 @@
   });
 
   window.addEventListener("resize", resize);
+  window.addEventListener("error", () => {
+    state.metrics.errors += 1;
+    saveMetrics();
+  });
+  window.addEventListener("unhandledrejection", () => {
+    state.metrics.errors += 1;
+    saveMetrics();
+  });
   updateBestStats();
   updateHud();
   resize();
@@ -1572,15 +1948,35 @@
     reload,
     switchWeapon,
     jump,
+    look: handleLook,
     damagePlayer,
     killAllBots() {
       for (const bot of state.bots) {
         if (bot.alive) damageBot(bot, 999);
       }
     },
+    listArenas() {
+      return validateArenas();
+    },
+    setArena(index) {
+      state.arenaSequence = Number(index) || 0;
+      startRound();
+    },
+    getPlaytestReport() {
+      return buildPlaytestReport();
+    },
+    resetMetrics() {
+      localStorage.removeItem(METRICS_KEY);
+      state.metrics = loadMetrics();
+      return metricSnapshot();
+    },
     getState() {
       return {
         mode: state.mode,
+        arena: activeArena.name,
+        countdown: Number(state.countdown.toFixed(2)),
+        fps: state.fps,
+        metrics: metricSnapshot(),
         health: player.health,
         ammo: player.ammo.slice(),
         reserve: player.reserve.slice(),
@@ -1599,7 +1995,7 @@
           angle: Number(player.a.toFixed(3))
         },
         botHealth: state.bots.map((bot) => Math.max(0, Math.ceil(bot.hp))),
-        botStates: state.bots.map((bot) => bot.state),
+        botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name })),
         botPositions: state.bots.map((bot) => ({ x: Number(bot.x.toFixed(3)), y: Number(bot.y.toFixed(3)), z: Number(bot.z.toFixed(3)) })),
         canvas: { width: canvas.width, height: canvas.height }
       };
