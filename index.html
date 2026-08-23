@@ -6,7 +6,7 @@
     <title>Tactical Arena</title>
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./styles.css?v=5">
   </head>
   <body>
     <main id="app" aria-label="Tactical Arena game">
@@ -29,8 +29,9 @@
         </div>
         <div class="hud-center">
           <div class="readout arena-readout">
-            <span class="label">Arena</span>
+            <span id="levelText" class="label">Level 1 / 5</span>
             <span id="arenaText" class="value">Cargo Court</span>
+            <span id="objectiveText" class="objective-value">Clear the squad</span>
           </div>
           <div class="readout">
             <span class="label">Bots</span>
@@ -71,6 +72,10 @@
           <button id="controlsButton" type="button">Controls</button>
         </div>
         <div id="bestStats" class="best-stats">Best score: 0</div>
+        <div class="loadout-picker">
+          <span class="label">Weapon Color</span>
+          <div id="accentChoices" class="accent-choices" aria-label="Weapon color"></div>
+        </div>
         <div id="controlsPanel" class="controls-panel hidden">
           <dl>
             <div><dt>Move</dt><dd>WASD</dd></div>
@@ -103,6 +108,12 @@
         </div>
       </section>
 
+      <section id="upgradePanel" class="panel upgrade-panel hidden">
+        <h2>Choose Upgrade</h2>
+        <p class="subhead">Pick one boost for the rest of this level.</p>
+        <div id="upgradeChoices" class="upgrade-choices"></div>
+      </section>
+
       <section id="roundPanel" class="panel hidden">
         <h2 id="roundTitle">Round Complete</h2>
         <p id="roundSummary" class="subhead"></p>
@@ -110,12 +121,13 @@
         <div id="benchmarkSummary" class="benchmark-summary"></div>
         <div class="menu-actions">
           <button id="restartButton" class="primary" type="button">Restart Round</button>
+          <button id="copyScoreButton" type="button">Copy Score Card</button>
           <button id="copyReportButton" type="button">Copy Playtest Report</button>
           <button id="menuButton" type="button">Main Menu</button>
         </div>
       </section>
     </main>
 
-    <script src="./game.js"></script>
+    <script src="./game.js?v=5"></script>
   </body>
 </html>

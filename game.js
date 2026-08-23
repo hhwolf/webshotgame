@@ -10,6 +10,7 @@
     hud: document.getElementById("hud"),
     menu: document.getElementById("menu"),
     pause: document.getElementById("pausePanel"),
+    upgrade: document.getElementById("upgradePanel"),
     round: document.getElementById("roundPanel"),
     health: document.getElementById("healthText"),
     ammo: document.getElementById("ammoText"),
@@ -18,6 +19,8 @@
     timer: document.getElementById("timerText"),
     score: document.getElementById("scoreText"),
     arena: document.getElementById("arenaText"),
+    level: document.getElementById("levelText"),
+    objective: document.getElementById("objectiveText"),
     best: document.getElementById("bestStats"),
     controls: document.getElementById("controlsPanel"),
     crosshair: document.getElementById("crosshair"),
@@ -28,7 +31,9 @@
     roundSummary: document.getElementById("roundSummary"),
     scoreboard: document.getElementById("scoreboard"),
     benchmark: document.getElementById("benchmarkSummary"),
-    callout: document.getElementById("roundCallout")
+    callout: document.getElementById("roundCallout"),
+    upgradeChoices: document.getElementById("upgradeChoices"),
+    accentChoices: document.getElementById("accentChoices")
   };
 
   const buttons = {
@@ -37,6 +42,7 @@
     resume: document.getElementById("resumeButton"),
     restartPause: document.getElementById("restartPauseButton"),
     restart: document.getElementById("restartButton"),
+    copyScore: document.getElementById("copyScoreButton"),
     copyReport: document.getElementById("copyReportButton"),
     menu: document.getElementById("menuButton")
   };
@@ -44,6 +50,7 @@
   const ARENAS = [
     {
       name: "Cargo Court",
+      objective: { type: "eliminate", label: "Clear the squad", goal: 5 },
       sky: ["#78c9e8", "#b7e2e7", "#f4d58b"],
       grid: [
         "1111111111111111",
@@ -85,6 +92,7 @@
     },
     {
       name: "Sunset Yard",
+      objective: { type: "collect", label: "Recover intel", goal: 2 },
       sky: ["#77b9e8", "#d4c9ed", "#ffcf8b"],
       grid: [
         "1111111111111111",
@@ -120,11 +128,14 @@
         { x: 8.5, y: 9.5, type: "barrel", color: "#9d8df1" },
         { x: 12.5, y: 11.0, type: "lamp", color: "#ffe88a" },
         { x: 7.5, y: 1.5, type: "health", color: "#65d18e" },
-        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" }
+        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" },
+        { x: 6.5, y: 1.5, type: "objective", color: "#ffd166", label: "INTEL" },
+        { x: 10.5, y: 7.5, type: "objective", color: "#ffd166", label: "INTEL" }
       ]
     },
     {
       name: "Canal Works",
+      objective: { type: "hold", label: "Secure relay", goal: 8, position: { x: 10.5, y: 7.5 } },
       sky: ["#62c7d7", "#a8e3d3", "#f7e39a"],
       grid: [
         "1111111111111111",
@@ -160,7 +171,90 @@
         { x: 13.5, y: 9.5, type: "cone", color: "#ff8a4c" },
         { x: 10.5, y: 11.0, type: "barrel", color: "#4cc3d9" },
         { x: 7.5, y: 7.5, type: "health", color: "#65d18e" },
-        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" }
+        { x: 2.5, y: 9.5, type: "health", color: "#65d18e" },
+        { x: 10.5, y: 7.5, type: "zone", color: "#4cc3d9", label: "RELAY" }
+      ]
+    },
+    {
+      name: "Metro Market",
+      objective: { type: "collect", label: "Claim supply caches", goal: 3 },
+      sky: ["#6cb8e6", "#c5d9f0", "#ffc982"],
+      grid: [
+        "1111111111111111",
+        "1000000000000001",
+        "1011101110111101",
+        "1000100000100001",
+        "1100101110101101",
+        "1000001000000001",
+        "1011101011110101",
+        "1000001000000101",
+        "1010111110110101",
+        "1010000000010001",
+        "1011101011111101",
+        "1000000000000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.08 },
+      botSpawns: [{ x: 13.5, y: 1.5 }, { x: 14.2, y: 5.5 }, { x: 1.5, y: 11.0 }, { x: 8.5, y: 9.5 }, { x: 5.5, y: 7.5 }],
+      patrolRoutes: [
+        [{ x: 13.5, y: 1.5 }, { x: 9.5, y: 1.5 }, { x: 11.5, y: 3.5 }],
+        [{ x: 14.2, y: 5.5 }, { x: 12.5, y: 7.5 }, { x: 14.2, y: 9.5 }],
+        [{ x: 1.5, y: 11.0 }, { x: 5.5, y: 11.0 }, { x: 9.5, y: 11.0 }],
+        [{ x: 8.5, y: 9.5 }, { x: 6.5, y: 9.5 }, { x: 8.5, y: 11.0 }],
+        [{ x: 5.5, y: 7.5 }, { x: 3.5, y: 7.5 }, { x: 5.5, y: 9.5 }]
+      ],
+      coverPoints: [{ x: 5.5, y: 1.5 }, { x: 9.5, y: 3.5 }, { x: 14.2, y: 5.5 }, { x: 3.5, y: 7.5 }, { x: 8.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 12.5, y: 11.0 }],
+      props: [
+        { x: 6.5, y: 1.5, type: "sign", color: "#ffcf65", label: "MARKET" },
+        { x: 9.5, y: 3.5, type: "crate", color: "#ec6d5f", label: "M" },
+        { x: 2.5, y: 5.5, type: "barrel", color: "#4cc3d9" },
+        { x: 12.5, y: 7.5, type: "lamp", color: "#ffe88a" },
+        { x: 8.5, y: 9.5, type: "crate", color: "#9d8df1", label: "N" },
+        { x: 5.5, y: 11.0, type: "health", color: "#65d18e" },
+        { x: 13.5, y: 1.5, type: "health", color: "#65d18e" },
+        { x: 5.5, y: 1.5, type: "objective", color: "#ffd166", label: "CACHE" },
+        { x: 3.5, y: 7.5, type: "objective", color: "#ffd166", label: "CACHE" },
+        { x: 12.5, y: 11.0, type: "objective", color: "#ffd166", label: "CACHE" }
+      ]
+    },
+    {
+      name: "Beacon District",
+      objective: { type: "hold", label: "Charge the beacon", goal: 12, position: { x: 7.5, y: 7.5 } },
+      sky: ["#63b8d6", "#b5dce0", "#f4d999"],
+      grid: [
+        "1111111111111111",
+        "1000000000000001",
+        "1011110110111101",
+        "1000010101000001",
+        "1010010101011101",
+        "1010000001000001",
+        "1011101101110101",
+        "1000000000000101",
+        "1010111111100101",
+        "1000000000000001",
+        "1011101110111101",
+        "1000000000000001",
+        "1111111111111111"
+      ],
+      spawn: { x: 1.7, y: 1.7, a: 0.1 },
+      botSpawns: [{ x: 13.5, y: 1.5 }, { x: 14.2, y: 5.5 }, { x: 1.5, y: 11.0 }, { x: 8.5, y: 7.5 }, { x: 12.5, y: 9.5 }],
+      patrolRoutes: [
+        [{ x: 13.5, y: 1.5 }, { x: 9.5, y: 1.5 }, { x: 11.5, y: 3.5 }],
+        [{ x: 14.2, y: 5.5 }, { x: 14.2, y: 7.5 }, { x: 12.5, y: 9.5 }],
+        [{ x: 1.5, y: 11.0 }, { x: 5.5, y: 11.0 }, { x: 9.5, y: 11.0 }],
+        [{ x: 8.5, y: 7.5 }, { x: 5.5, y: 7.5 }, { x: 3.5, y: 7.5 }],
+        [{ x: 12.5, y: 9.5 }, { x: 8.5, y: 9.5 }, { x: 12.5, y: 11.0 }]
+      ],
+      coverPoints: [{ x: 6.5, y: 1.5 }, { x: 4.5, y: 3.5 }, { x: 12.5, y: 5.5 }, { x: 5.5, y: 7.5 }, { x: 12.5, y: 9.5 }, { x: 5.5, y: 11.0 }, { x: 10.5, y: 11.0 }],
+      props: [
+        { x: 6.5, y: 1.5, type: "sign", color: "#65d18e", label: "BEACON" },
+        { x: 4.5, y: 3.5, type: "crate", color: "#4cc3d9", label: "P" },
+        { x: 12.5, y: 5.5, type: "barrel", color: "#ec6d5f" },
+        { x: 3.5, y: 7.5, type: "lamp", color: "#ffe88a" },
+        { x: 12.5, y: 9.5, type: "crate", color: "#f2b84b", label: "Q" },
+        { x: 5.5, y: 11.0, type: "health", color: "#65d18e" },
+        { x: 13.5, y: 1.5, type: "health", color: "#65d18e" },
+        { x: 7.5, y: 7.5, type: "zone", color: "#9d8df1", label: "BEACON" }
       ]
     }
   ];
@@ -184,6 +278,19 @@
     { suit: "#da5e58", dark: "#7d3240", vest: "#2b4854", trim: "#8ce99a", skin: "#e3a578" }
   ];
   const botNames = ["Rook", "Vex", "Pico", "Dash", "Mako"];
+  const botTypes = {
+    rifleman: { id: "rifleman", label: "Rifle", hp: 100, speed: 1, fireMin: 0.75, fireMax: 1.35, damageMin: 7, damageMax: 15, accuracy: 0.82, scale: 1, accent: "#ffd166" },
+    rusher: { id: "rusher", label: "Rush", hp: 82, speed: 1.42, fireMin: 0.9, fireMax: 1.4, damageMin: 6, damageMax: 12, accuracy: 0.72, scale: 0.92, accent: "#ff8a64" },
+    heavy: { id: "heavy", label: "Heavy", hp: 155, speed: 0.72, fireMin: 0.62, fireMax: 1.05, damageMin: 9, damageMax: 17, accuracy: 0.76, scale: 1.16, accent: "#9d8df1" },
+    scout: { id: "scout", label: "Scout", hp: 68, speed: 1.24, fireMin: 1.05, fireMax: 1.65, damageMin: 8, damageMax: 14, accuracy: 0.9, scale: 0.88, accent: "#4cc3d9" }
+  };
+  const arenaBotRoles = [
+    ["rifleman", "rifleman", "scout", "rusher", "rifleman"],
+    ["rusher", "rifleman", "scout", "rusher", "rifleman"],
+    ["heavy", "rifleman", "scout", "rusher", "rifleman"],
+    ["heavy", "rusher", "scout", "rusher", "rifleman"],
+    ["heavy", "heavy", "scout", "rusher", "rifleman"]
+  ];
 
   const weapons = [
     {
@@ -214,6 +321,21 @@
     }
   ];
 
+  const upgrades = [
+    { id: "overcharge", name: "Overcharge", description: "+25% weapon damage", apply: () => { player.damageMultiplier *= 1.25; } },
+    { id: "quickHands", name: "Quick Hands", description: "30% faster reloads", apply: () => { player.reloadMultiplier *= 0.7; } },
+    { id: "reinforced", name: "Reinforced", description: "+25 maximum health and healing", apply: () => { player.maxHealth += 25; player.health = Math.min(player.maxHealth, player.health + 25); } },
+    { id: "fleet", name: "Fleet Footing", description: "+15% movement speed", apply: () => { player.speedBonus += 0.45; } },
+    { id: "deepMags", name: "Deep Mags", description: "+50% reserve ammunition", apply: () => { player.reserve = player.reserve.map((amount) => amount + Math.ceil(amount * 0.5)); } }
+  ];
+
+  const accentOptions = [
+    { id: "cyan", color: "#4cc3d9", score: 0 },
+    { id: "mint", color: "#65d18e", score: 800 },
+    { id: "gold", color: "#f2b84b", score: 1100 },
+    { id: "coral", color: "#ec6d5f", score: 1400 }
+  ];
+
   const METRICS_KEY = "tacticalArena.playtestMetrics.v1";
   const CORE_CONTROLS = ["move", "aim", "shoot", "jump"];
 
@@ -230,12 +352,17 @@
     effects: [],
     score: 0,
     kills: 0,
+    objectiveProgress: 0,
+    objectiveComplete: false,
+    upgradeMilestones: new Set(),
+    difficulty: 1,
     roundDuration: 180,
     timeLeft: 180,
     elapsed: 0,
     countdown: 0,
-    arenaSequence: 0,
+    arenaSequence: Number(localStorage.getItem("tacticalArena.campaignLevel") || 0),
     lastRoundEndedAt: 0,
+    lastResult: null,
     roundControls: new Set(),
     metrics: loadMetrics(),
     fps: 60,
@@ -261,6 +388,7 @@
     recoil: 0,
     shake: 0,
     damageFlash: 0,
+    damageCooldown: 0,
     hitMarker: 0,
     muzzle: 0,
     weaponIndex: 0,
@@ -268,6 +396,7 @@
     reserve: [48, 90],
     cooldown: 0,
     reloading: 0,
+    reloadDuration: 0,
     bob: 0,
     z: 0,
     vz: 0,
@@ -278,8 +407,19 @@
     damageAngle: 0,
     healFlash: 0,
     healAmount: 0,
-    healthKits: 0
+    healthKits: 0,
+    maxHealth: 100,
+    damageMultiplier: 1,
+    reloadMultiplier: 1,
+    speedBonus: 0,
+    upgrades: [],
+    footstepTimer: 0,
+    noticeFlash: 0,
+    noticeText: ""
   };
+  player.accent = localStorage.getItem("tacticalArena.accent") || accentOptions[0].color;
+  const savedAccent = accentOptions.find((option) => option.color === player.accent);
+  if (!savedAccent || state.bestScore < savedAccent.score) player.accent = accentOptions[0].color;
 
   const TAU = Math.PI * 2;
   const FOV = Math.PI / 3;
@@ -345,7 +485,7 @@
   }
 
   function percent(part, whole) {
-    return whole > 0 ? Math.round(part / whole * 100) : 0;
+    return whole > 0 ? clamp(Math.round(part / whole * 100), 0, 100) : 0;
   }
 
   function metricSnapshot() {
@@ -371,7 +511,7 @@
   function buildPlaytestReport() {
     return JSON.stringify({
       game: "Tactical Arena",
-      build: "1.1-cartoon",
+      build: "2.0-campaign",
       recordedAt: new Date().toISOString(),
       targets: {
         completionRate: ">= 75%",
@@ -420,6 +560,12 @@
         return gx < 0 || gy < 0 || gx >= width || gy >= height || arena.grid[gy][gx] === "1";
       };
       if (arena.grid.some((row) => row.length !== width)) errors.push("rows have inconsistent widths");
+      if (arena.objective.type === "collect" && arena.props.filter((prop) => prop.type === "objective").length !== arena.objective.goal) {
+        errors.push("collect objective count does not match its goal");
+      }
+      if (arena.objective.type === "hold" && wallAt(arena.objective.position.x, arena.objective.position.y)) {
+        errors.push("hold objective is inside a wall");
+      }
       for (const [label, point] of points) {
         if (wallAt(point.x, point.y)) errors.push(`${label} is inside a wall`);
       }
@@ -527,8 +673,9 @@
     state.mode = mode;
     ui.menu.classList.toggle("hidden", mode !== "menu");
     ui.pause.classList.toggle("hidden", mode !== "paused");
+    ui.upgrade.classList.toggle("hidden", mode !== "upgrade");
     ui.round.classList.toggle("hidden", mode !== "won" && mode !== "lost");
-    ui.hud.classList.toggle("hidden", mode !== "playing");
+    ui.hud.classList.toggle("hidden", mode !== "playing" && mode !== "upgrade");
     ui.crosshair.classList.toggle("hidden", mode !== "playing");
     if (mode !== "playing") ui.callout.classList.add("hidden");
   }
@@ -546,15 +693,46 @@
   function updateBestStats() {
     const time = state.bestTime > 0 ? ` | Fastest clear: ${state.bestTime.toFixed(1)}s` : "";
     ui.best.textContent = `Best score: ${state.bestScore}${time}`;
+    buttons.start.textContent = state.arenaSequence > 0 ? "Continue Campaign" : "Start Game";
+    renderAccentChoices();
+  }
+
+  function renderAccentChoices() {
+    ui.accentChoices.innerHTML = "";
+    for (const option of accentOptions) {
+      const button = document.createElement("button");
+      const unlocked = state.bestScore >= option.score;
+      button.type = "button";
+      button.className = `accent-swatch${player.accent === option.color ? " is-selected" : ""}`;
+      button.style.setProperty("--swatch", option.color);
+      button.dataset.accent = option.id;
+      button.disabled = !unlocked;
+      button.title = unlocked ? `${option.id} weapon color` : `Unlock at ${option.score} score`;
+      button.setAttribute("aria-label", button.title);
+      ui.accentChoices.appendChild(button);
+    }
+  }
+
+  function selectAccent(id) {
+    const option = accentOptions.find((item) => item.id === id);
+    if (!option || state.bestScore < option.score) return;
+    player.accent = option.color;
+    localStorage.setItem("tacticalArena.accent", player.accent);
+    renderAccentChoices();
   }
 
   function makeBot(index, spot) {
+    const roleId = arenaBotRoles[activeArenaIndex]?.[index] || "rifleman";
+    const type = botTypes[roleId];
+    const palette = { ...botPalettes[index % botPalettes.length], trim: type.accent };
     return {
       id: index + 1,
       name: botNames[index % botNames.length],
       x: spot.x,
       y: spot.y,
-      hp: 100,
+      hp: type.hp,
+      maxHp: type.hp,
+      type,
       alive: true,
       death: 0,
       state: "patrol",
@@ -563,13 +741,13 @@
       path: [],
       pathTimer: 0,
       target: patrolRoutes[index % patrolRoutes.length][0],
-      shootTimer: 0.6 + Math.random() * 0.8,
+      shootTimer: type.fireMin + Math.random() * (type.fireMax - type.fireMin),
       aiming: false,
       aimWindup: 0,
       flash: 0,
       alert: 0,
       coverCooldown: 0,
-      palette: botPalettes[index % botPalettes.length],
+      palette,
       facing: Math.random() * TAU,
       moveSpeed: 0,
       anim: Math.random() * TAU,
@@ -583,7 +761,8 @@
 
   function resetRound() {
     selectArena(state.arenaSequence % ARENAS.length);
-    state.arenaSequence += 1;
+    const smoothedWinRate = (state.metrics.wins + 1) / (state.metrics.completed + 5);
+    state.difficulty = clamp(0.92 + (smoothedWinRate - 0.2) * 0.35 + activeArenaIndex * 0.025, 0.82, 1.2);
     Object.assign(player, {
       x: spawn.x,
       y: spawn.y,
@@ -594,6 +773,7 @@
       recoil: 0,
       shake: 0,
       damageFlash: 0,
+      damageCooldown: 0,
       hitMarker: 0,
       muzzle: 0,
       weaponIndex: 0,
@@ -601,6 +781,7 @@
       reserve: [weapons[0].reserve, weapons[1].reserve],
       cooldown: 0,
       reloading: 0,
+      reloadDuration: 0,
       bob: 0,
       z: 0,
       vz: 0,
@@ -611,13 +792,24 @@
       damageAngle: 0,
       healFlash: 0,
       healAmount: 0,
-      healthKits: 0
+      healthKits: 0,
+      maxHealth: 100,
+      damageMultiplier: 1,
+      reloadMultiplier: 1,
+      speedBonus: 0,
+      upgrades: [],
+      footstepTimer: 0,
+      noticeFlash: 0,
+      noticeText: ""
     });
     arenaProps = activeArena.props.map((prop, index) => ({ ...prop, id: index, active: true }));
     state.bots = botSpawns.map((spot, index) => makeBot(index, spot));
     state.effects = [];
     state.score = 0;
     state.kills = 0;
+    state.objectiveProgress = 0;
+    state.objectiveComplete = false;
+    state.upgradeMilestones = new Set();
     state.timeLeft = state.roundDuration;
     state.elapsed = 0;
     state.countdown = 2.4;
@@ -700,13 +892,32 @@
       state.bestTime = timeUsed;
       localStorage.setItem("tacticalArena.fastestClear", String(timeUsed.toFixed(1)));
     }
+    if (won) {
+      state.arenaSequence = (activeArenaIndex + 1) % ARENAS.length;
+      localStorage.setItem("tacticalArena.campaignLevel", String(state.arenaSequence));
+    } else {
+      state.arenaSequence = activeArenaIndex;
+    }
+
+    state.lastResult = {
+      won,
+      arena: activeArena.name,
+      level: activeArenaIndex + 1,
+      score: finalScore,
+      kills: state.kills,
+      time: timeUsed,
+      objective: activeArena.objective.label
+    };
 
     ui.roundTitle.textContent = won ? "Round Won" : "Round Lost";
     ui.roundSummary.textContent = reason;
     ui.scoreboard.innerHTML = [
       `<div>Arena: ${activeArena.name}</div>`,
+      `<div>Objective: ${activeArena.objective.label}</div>`,
       `<div>Kills: ${state.kills} / ${state.bots.length}</div>`,
       `<div>Health kits: ${player.healthKits}</div>`,
+      `<div>Upgrades: ${player.upgrades.length}</div>`,
+      `<div>Threat: ${Math.round(state.difficulty * 100)}%</div>`,
       `<div>Base score: ${state.score}</div>`,
       `<div>Time bonus: ${timeBonus}</div>`,
       `<div>Final score: ${finalScore}</div>`,
@@ -715,6 +926,8 @@
     const snapshot = metricSnapshot();
     ui.benchmark.textContent = `Playtest: ${snapshot.completionRate}% completion | ${snapshot.winRate}% wins | ${snapshot.replayRate}% replay | ${snapshot.averageFps} FPS`;
     buttons.copyReport.textContent = "Copy Playtest Report";
+    buttons.copyScore.textContent = "Copy Score Card";
+    buttons.restart.textContent = won ? "Next Level" : "Retry Level";
     updateBestStats();
   }
 
@@ -737,7 +950,8 @@
     const index = player.weaponIndex;
     if (player.reloading > 0 || player.ammo[index] >= weapon.magSize || player.reserve[index] <= 0) return;
     markControl("reload");
-    player.reloading = weapon.reload;
+    player.reloadDuration = weapon.reload * player.reloadMultiplier;
+    player.reloading = player.reloadDuration;
     playTone("reload");
     updateHud();
   }
@@ -793,9 +1007,10 @@
     const endX = player.x + Math.cos(shotAngle) * best;
     const endY = player.y + Math.sin(shotAngle) * best;
     state.effects.push({ type: "tracer", x1: player.x, y1: player.y, x2: endX, y2: endY, life: 0.05, ttl: 0.05 });
+    state.effects.push({ type: "casing", life: 0.42, ttl: 0.42, drift: Math.random() * 0.5 });
 
     if (target) {
-      damageBot(target, weapon.damage + Math.floor(Math.random() * 6));
+      damageBot(target, (weapon.damage + Math.floor(Math.random() * 6)) * player.damageMultiplier);
       state.effects.push({ type: "impact", x: target.x, y: target.y, life: 0.22, ttl: 0.22, color: "#65d18e" });
       return true;
     }
@@ -807,7 +1022,7 @@
     bot.hp -= amount;
     bot.alert = 1;
     bot.hurt = 0.2;
-    bot.state = bot.hp < 45 ? "cover" : "attack";
+    bot.state = bot.hp < bot.maxHp * 0.45 ? "cover" : "attack";
     player.hitMarker = 0.12;
     ui.hitMarker.classList.remove("hidden");
     state.score += 15;
@@ -817,17 +1032,20 @@
       bot.aiming = false;
       bot.death = 1;
       state.kills += 1;
+      if (activeArena.objective.type === "eliminate") state.objectiveProgress = state.kills;
       state.score += 100;
       playTone("death");
-      if (state.bots.every((item) => !item.alive)) {
-        finishRound(true, "All hostile bots eliminated.");
-      }
+      if (activeArena.objective.type === "eliminate" && state.bots.every((item) => !item.alive)) state.objectiveComplete = true;
+      checkRoundWin();
+      if (state.mode === "playing") maybeOfferUpgrade();
     }
     updateHud();
   }
 
   function damagePlayer(amount, source = null) {
+    if (source && player.damageCooldown > 0) return;
     player.health = Math.max(0, player.health - amount);
+    if (source) player.damageCooldown = 0.16;
     player.damageFlash = 0.28;
     player.shake = Math.max(player.shake, 6);
     player.damageAngle = source ? normalizeAngle(Math.atan2(source.y - player.y, source.x - player.x) - player.a) : 0;
@@ -840,11 +1058,12 @@
   }
 
   function collectHealthKits() {
-    if (player.health >= 100) return;
+    if (player.health >= player.maxHealth) return;
     for (const prop of arenaProps) {
       if (prop.type !== "health" || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.55) continue;
       const previousHealth = player.health;
-      player.health = Math.min(100, player.health + 40);
+      const kitHealing = 40 + Math.max(0, player.maxHealth - 100) * 0.4;
+      player.health = Math.min(player.maxHealth, player.health + kitHealing);
       player.healAmount = Math.ceil(player.health - previousHealth);
       player.healFlash = 0.8;
       player.healthKits += 1;
@@ -853,6 +1072,73 @@
       playTone("heal");
       updateHud();
     }
+  }
+
+  function updateObjective(dt) {
+    if (state.countdown > 0 || state.objectiveComplete) return;
+    const objective = activeArena.objective;
+    if (objective.type === "collect") {
+      for (const prop of arenaProps) {
+        if (prop.type !== "objective" || !prop.active || distance(player.x, player.y, prop.x, prop.y) > 0.6) continue;
+        prop.active = false;
+        state.objectiveProgress += 1;
+        state.score += 75;
+        player.noticeText = `${objective.label.toUpperCase()} ${state.objectiveProgress}/${objective.goal}`;
+        player.noticeFlash = 0.9;
+        playTone("objective");
+      }
+      if (state.objectiveProgress >= objective.goal) {
+        state.objectiveComplete = true;
+        state.score += 150;
+      }
+    } else if (objective.type === "hold") {
+      const point = objective.position;
+      if (distance(player.x, player.y, point.x, point.y) <= 1.05) {
+        state.objectiveProgress = Math.min(objective.goal, state.objectiveProgress + dt);
+        if (state.objectiveProgress >= objective.goal) {
+          state.objectiveComplete = true;
+          state.score += 200;
+          player.noticeText = "OBJECTIVE SECURED";
+          player.noticeFlash = 1;
+          playTone("objective");
+        }
+      }
+    }
+    checkRoundWin();
+  }
+
+  function checkRoundWin() {
+    if (state.mode !== "playing") return;
+    const botsCleared = state.bots.every((bot) => !bot.alive);
+    if (activeArena.objective.type === "eliminate") state.objectiveComplete = botsCleared;
+    if (botsCleared && state.objectiveComplete) finishRound(true, `${activeArena.objective.label} complete.`);
+  }
+
+  function maybeOfferUpgrade() {
+    if (![2, 4].includes(state.kills) || state.upgradeMilestones.has(state.kills)) return;
+    state.upgradeMilestones.add(state.kills);
+    const available = upgrades.filter((upgrade) => !player.upgrades.includes(upgrade.id));
+    const choices = available.sort(() => Math.random() - 0.5).slice(0, 3);
+    ui.upgradeChoices.innerHTML = choices.map((upgrade) => (
+      `<button class="upgrade-choice" type="button" data-upgrade="${upgrade.id}"><strong>${upgrade.name}</strong><span>${upgrade.description}</span></button>`
+    )).join("");
+    document.exitPointerLock?.();
+    showOnly("upgrade");
+  }
+
+  function chooseUpgrade(id) {
+    if (state.mode !== "upgrade") return;
+    const upgrade = upgrades.find((item) => item.id === id);
+    if (!upgrade) return;
+    upgrade.apply();
+    player.upgrades.push(upgrade.id);
+    player.noticeText = upgrade.name.toUpperCase();
+    player.noticeFlash = 0.9;
+    playTone("upgrade");
+    updateHud();
+    showOnly("playing");
+    checkRoundWin();
+    if (state.mode === "playing") requestPointer();
   }
 
   function jump() {
@@ -927,10 +1213,13 @@
     player.muzzle = Math.max(0, player.muzzle - dt);
     player.hitMarker = Math.max(0, player.hitMarker - dt);
     player.damageFlash = Math.max(0, player.damageFlash - dt);
+    player.damageCooldown = Math.max(0, player.damageCooldown - dt);
     player.healFlash = Math.max(0, player.healFlash - dt);
+    player.noticeFlash = Math.max(0, player.noticeFlash - dt);
     player.jumpCooldown = Math.max(0, player.jumpCooldown - dt);
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
     player.landing = Math.max(0, player.landing - dt * 4.5);
+    player.footstepTimer = Math.max(0, player.footstepTimer - dt);
     ui.hitMarker.classList.toggle("hidden", player.hitMarker <= 0);
     ui.damage.classList.toggle("hidden", player.damageFlash <= 0);
 
@@ -958,8 +1247,9 @@
     const strafe = (state.keys.KeyD ? 1 : 0) - (state.keys.KeyA ? 1 : 0);
     const hasMoveInput = forward !== 0 || strafe !== 0;
     const inputLength = Math.hypot(forward, strafe) || 1;
-    const targetVx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
-    const targetVy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / inputLength * player.speed;
+    const moveSpeed = player.speed + player.speedBonus;
+    const targetVx = (Math.cos(player.a) * forward + Math.cos(player.a + Math.PI / 2) * strafe) / inputLength * moveSpeed;
+    const targetVy = (Math.sin(player.a) * forward + Math.sin(player.a + Math.PI / 2) * strafe) / inputLength * moveSpeed;
     const response = 1 - Math.exp(-(hasMoveInput ? 16 : 11) * dt);
     player.vx += (targetVx - player.vx) * response;
     player.vy += (targetVy - player.vy) * response;
@@ -972,8 +1262,13 @@
       if (Math.abs(player.x - oldX) < Math.abs(player.vx * dt) * 0.15) player.vx *= 0.25;
       if (Math.abs(player.y - oldY) < Math.abs(player.vy * dt) * 0.15) player.vy *= 0.25;
       player.bob += dt * (8 + movingSpeed * 1.4);
+      if (player.grounded && hasMoveInput && player.footstepTimer <= 0) {
+        player.footstepTimer = 0.34;
+        playTone("step");
+      }
     }
     collectHealthKits();
+    updateObjective(dt);
 
     if (state.pointerDown && currentWeapon().auto) shoot();
     if (state.countdown <= 0) updateBots(dt);
@@ -1011,7 +1306,7 @@
       const seesPlayer = distToPlayer < 10 && hasLineOfSight(bot.x, bot.y, player.x, player.y);
       if (seesPlayer) {
         bot.alert = 1;
-        if (bot.hp < 45 && bot.coverCooldown <= 0) {
+        if (bot.hp < bot.maxHp * 0.45 && bot.coverCooldown <= 0) {
           bot.state = "cover";
           bot.target = nearestCover(bot);
           bot.coverCooldown = 3.5;
@@ -1028,7 +1323,8 @@
         bot.target = target;
         if (distance(bot.x, bot.y, target.x, target.y) < 0.35) bot.patrolIndex += 1;
       } else if (bot.state === "attack") {
-        bot.target = distToPlayer > 4.2 ? { x: player.x, y: player.y } : orbitPoint(bot);
+        const preferredRange = bot.type.id === "rusher" ? 1.8 : bot.type.id === "scout" ? 5.2 : 4.2;
+        bot.target = distToPlayer > preferredRange ? { x: player.x, y: player.y } : orbitPoint(bot);
       } else if (bot.state === "cover" && distance(bot.x, bot.y, bot.target.x, bot.target.y) < 0.45) {
         bot.state = "attack";
       }
@@ -1049,7 +1345,7 @@
         }
       } else if (seesPlayer && distToPlayer < 9.5 && bot.shootTimer <= 0) {
         bot.aiming = true;
-        bot.aimWindup = 0.32 + Math.random() * 0.16;
+        bot.aimWindup = (0.32 + Math.random() * 0.16) / state.difficulty;
       }
     }
   }
@@ -1094,21 +1390,23 @@
       bot.moveSpeed = 0;
       return;
     }
-    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * (bot.aiming ? 0.42 : 1) * dt;
+    const speed = (bot.state === "patrol" ? 1.0 : 1.45) * bot.type.speed * state.difficulty * (bot.aiming ? 0.42 : 1) * dt;
     bot.facing = Math.atan2(dy, dx);
     bot.moveSpeed = speed / Math.max(dt, 0.001);
     moveEntity(bot, (dx / len) * speed, (dy / len) * speed, 0.18);
   }
 
   function botShoot(bot, distToPlayer) {
-    bot.shootTimer = 0.75 + Math.random() * 0.7;
+    bot.shootTimer = (bot.type.fireMin + Math.random() * (bot.type.fireMax - bot.type.fireMin)) / state.difficulty;
     bot.flash = 0.11;
     playTone("bot");
     state.effects.push({ type: "tracer", x1: bot.x, y1: bot.y, x2: player.x, y2: player.y, life: 0.08, ttl: 0.08, bot: true });
 
-    const chance = clamp(0.82 - distToPlayer * 0.055 - player.recoil * 0.7, 0.28, 0.78);
+    const mercy = player.health < player.maxHealth * 0.3 ? 0.78 : 1;
+    const chance = clamp((bot.type.accuracy - distToPlayer * 0.055 - player.recoil * 0.7) * state.difficulty * mercy, 0.22, 0.84);
     if (Math.random() < chance) {
-      damagePlayer(7 + Math.floor(Math.random() * 9), bot);
+      const baseDamage = bot.type.damageMin + Math.random() * (bot.type.damageMax - bot.type.damageMin);
+      damagePlayer(Math.round(baseDamage * state.difficulty * mercy), bot);
     }
   }
 
@@ -1122,6 +1420,15 @@
     ui.timer.textContent = formatTime(state.timeLeft);
     ui.score.textContent = String(state.score);
     ui.arena.textContent = activeArena.name;
+    ui.level.textContent = `Level ${activeArenaIndex + 1} / ${ARENAS.length}`;
+    const objective = activeArena.objective;
+    if (objective.type === "eliminate") {
+      ui.objective.textContent = `${objective.label}: ${state.kills}/${state.bots.length || objective.goal}`;
+    } else if (objective.type === "collect") {
+      ui.objective.textContent = `${objective.label}: ${state.objectiveProgress}/${objective.goal}`;
+    } else {
+      ui.objective.textContent = `${objective.label}: ${Math.floor(state.objectiveProgress)}/${objective.goal}s`;
+    }
     ui.mute.setAttribute("aria-label", state.muted ? "Unmute audio" : "Mute audio");
     ui.mute.title = state.muted ? "Unmute audio" : "Mute audio";
     ui.mute.classList.toggle("is-muted", state.muted);
@@ -1255,12 +1562,12 @@
       .sort((a, b) => b.dist - a.dist);
 
     for (const { prop } of props) {
-      const heightScale = prop.type === "lamp" ? 1.05 : prop.type === "health" ? 0.5 : 0.58;
+      const heightScale = prop.type === "lamp" ? 1.05 : prop.type === "zone" ? 0.32 : ["health", "objective"].includes(prop.type) ? 0.5 : 0.58;
       const p = projectBillboard(prop.x, prop.y, w, h, heightScale);
       if (!p) continue;
       const size = p.projectedH;
       ctx.save();
-      const float = prop.type === "health" ? Math.sin(performance.now() * 0.003 + prop.id) * size * 0.04 : 0;
+      const float = ["health", "objective"].includes(prop.type) ? Math.sin(performance.now() * 0.003 + prop.id) * size * 0.04 : 0;
       ctx.translate(p.screenX, p.footY - float);
       ctx.globalAlpha = clamp(1.2 - p.depth / 20, 0.58, 1);
       ctx.fillStyle = "rgba(12, 20, 24, 0.28)";
@@ -1349,6 +1656,36 @@
         ctx.fillRect(-size * 0.16, -size * 0.45, size * 0.32, size * 0.13);
         ctx.fillStyle = "#27444b";
         ctx.fillRect(-size * 0.13, -size * 0.73, size * 0.26, size * 0.08);
+      } else if (prop.type === "objective") {
+        ctx.fillStyle = "rgba(255, 209, 102, 0.2)";
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.38, size * 0.52, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = prop.color;
+        ctx.beginPath();
+        ctx.roundRect(-size * 0.38, -size * 0.65, size * 0.76, size * 0.52, size * 0.08);
+        ctx.fill();
+        ctx.fillStyle = "#263943";
+        ctx.fillRect(-size * 0.16, -size * 0.73, size * 0.32, size * 0.1);
+        ctx.font = `900 ${Math.max(8, size * 0.13)}px Avenir Next, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(prop.label, 0, -size * 0.35);
+      } else if (prop.type === "zone") {
+        const pulse = 0.82 + Math.sin(performance.now() * 0.004) * 0.12;
+        ctx.fillStyle = `${prop.color}33`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.6 * pulse, size * 0.16 * pulse, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#29444f";
+        ctx.fillRect(-size * 0.05, -size * 0.72, size * 0.1, size * 0.66);
+        ctx.fillStyle = prop.color;
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.75, size * 0.14, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#f7fff4";
+        ctx.font = `900 ${Math.max(8, size * 0.1)}px Avenir Next, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(prop.label, 0, -size * 0.48);
       }
       ctx.restore();
     }
@@ -1362,7 +1699,7 @@
 
     for (const item of sprites) {
       const bot = item.bot;
-      const projected = projectBillboard(bot.x, bot.y, w, h, 0.98);
+      const projected = projectBillboard(bot.x, bot.y, w, h, 0.98 * bot.type.scale);
       if (!projected) continue;
       const { depth, screenX } = projected;
       const bodyH = projected.projectedH;
@@ -1378,12 +1715,12 @@
           ctx.fillStyle = "rgba(10, 23, 30, 0.82)";
           ctx.font = `800 ${clamp(bodyH * 0.105, 9, 14)}px Avenir Next, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(bot.name, screenX, barY - 5);
+          ctx.fillText(`${bot.name} / ${bot.type.label}`, screenX, barY - 5);
         }
         ctx.fillStyle = "rgba(0,0,0,0.55)";
         ctx.fillRect(screenX - barW / 2, barY, barW, 4);
         ctx.fillStyle = "#2bc4a7";
-        ctx.fillRect(screenX - barW / 2, barY, barW * clamp(bot.hp / 100, 0, 1), 4);
+        ctx.fillRect(screenX - barW / 2, barY, barW * clamp(bot.hp / bot.maxHp, 0, 1), 4);
       }
     }
   }
@@ -1463,6 +1800,20 @@
     ctx.beginPath();
     ctx.roundRect(-11, -62, 22, 13, 3);
     ctx.fill();
+
+    if (bot.type.id === "heavy") {
+      ctx.fillStyle = palette.trim;
+      ctx.beginPath();
+      ctx.roundRect(-29, -78, 14, 16, 5);
+      ctx.roundRect(15, -78, 14, 16, 5);
+      ctx.fill();
+    } else if (bot.type.id === "scout") {
+      ctx.fillStyle = palette.trim;
+      ctx.fillRect(-3, -80, 6, 35);
+    } else if (bot.type.id === "rusher") {
+      ctx.fillStyle = palette.trim;
+      ctx.fillRect(-20, -51, 40, 5);
+    }
 
     const armY = alert ? -65 : -68;
     const handY = alert ? -59 : -49 + stride * 2;
@@ -1565,7 +1916,15 @@
     const viewDist = w / (2 * Math.tan(FOV / 2));
     for (const effect of state.effects) {
       const alpha = clamp(effect.life / effect.ttl, 0, 1);
-      if (effect.type === "tracer") {
+      if (effect.type === "casing") {
+        const progress = 1 - alpha;
+        ctx.save();
+        ctx.translate(w * (0.66 + effect.drift * 0.05) + progress * w * 0.1, h * 0.72 + progress * progress * h * 0.16);
+        ctx.rotate(progress * 9);
+        ctx.fillStyle = `rgba(242, 184, 75, ${alpha})`;
+        ctx.fillRect(-5, -2, 10, 4);
+        ctx.restore();
+      } else if (effect.type === "tracer") {
         const points = [
           projectPoint(effect.x1, effect.y1, w, h, viewDist),
           projectPoint(effect.x2, effect.y2, w, h, viewDist)
@@ -1631,6 +1990,15 @@
       ctx.textBaseline = "middle";
       ctx.fillText(`+${player.healAmount} HEALTH`, w / 2, h * 0.63);
     }
+
+    if (player.noticeFlash > 0) {
+      const alpha = clamp(player.noticeFlash * 1.3, 0, 1);
+      ctx.fillStyle = `rgba(255, 232, 138, ${alpha})`;
+      ctx.font = `900 ${Math.max(18, Math.min(w, h) * 0.032)}px Avenir Next, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(player.noticeText, w / 2, h * 0.67);
+    }
   }
 
   function projectPoint(x, y, w, h, viewDist) {
@@ -1649,7 +2017,7 @@
     if (state.mode !== "playing") return;
     const weapon = currentWeapon();
     const kick = player.recoil * 130 + (player.muzzle > 0 ? 12 : 0);
-    const reloadPhase = player.reloading > 0 ? 1 - player.reloading / weapon.reload : 0;
+    const reloadPhase = player.reloading > 0 ? 1 - player.reloading / Math.max(0.01, player.reloadDuration) : 0;
     const reloadDip = player.reloading > 0 ? Math.sin(reloadPhase * Math.PI) * 58 : 0;
     const stride = player.grounded ? Math.sin(player.bob) : 0;
     const baseX = w * 0.58 + stride * 3;
@@ -1685,7 +2053,7 @@
     ctx.beginPath();
     ctx.roundRect(43, 5, 27, 61, 6);
     ctx.fill();
-    ctx.fillStyle = "#4cc3d9";
+    ctx.fillStyle = player.accent;
     ctx.fillRect(24, -32, 41, 5);
     ctx.fillStyle = "#f2b84b";
     ctx.fillRect(72, -33, 18, 4);
@@ -1737,6 +2105,20 @@
       for (let x = 0; x < mapW; x += 1) {
         rctx.fillStyle = MAP[y][x] === "1" ? "#53656b" : "#142027";
         rctx.fillRect(x * scale, y * scale, scale - 0.4, scale - 0.4);
+      }
+    }
+    for (const prop of arenaProps) {
+      if (prop.active === false || !["health", "objective", "zone"].includes(prop.type)) continue;
+      rctx.fillStyle = prop.type === "health" ? "#65d18e" : prop.type === "objective" ? "#ffd166" : "#4cc3d9";
+      if (prop.type === "zone") {
+        rctx.strokeStyle = rctx.fillStyle;
+        rctx.lineWidth = 1.5;
+        rctx.beginPath();
+        rctx.arc(prop.x * scale, prop.y * scale, Math.max(3, scale * 0.45), 0, TAU);
+        rctx.stroke();
+      } else {
+        const size = Math.max(2.5, scale * 0.28);
+        rctx.fillRect(prop.x * scale - size / 2, prop.y * scale - size / 2, size, size);
       }
     }
     for (const bot of state.bots) {
@@ -1854,6 +2236,23 @@
       dur = 0.07;
       vol = 0.045;
       osc.type = "sine";
+    } else if (type === "step") {
+      freq = 82;
+      dur = 0.035;
+      vol = 0.018;
+      osc.type = "triangle";
+    } else if (type === "objective") {
+      freq = 620;
+      dur = 0.24;
+      vol = 0.06;
+      osc.type = "sine";
+      osc.frequency.exponentialRampToValueAtTime(980, now + dur);
+    } else if (type === "upgrade") {
+      freq = 430;
+      dur = 0.28;
+      vol = 0.065;
+      osc.type = "triangle";
+      osc.frequency.exponentialRampToValueAtTime(760, now + dur);
     }
 
     osc.frequency.setValueAtTime(freq, now);
@@ -1886,13 +2285,12 @@
     player.a = normalizeAngle(player.a + dx * 0.0024);
   }
 
-  async function copyPlaytestReport() {
-    const report = buildPlaytestReport();
+  async function copyText(text) {
     try {
-      await navigator.clipboard.writeText(report);
+      await navigator.clipboard.writeText(text);
     } catch (_error) {
       const textarea = document.createElement("textarea");
-      textarea.value = report;
+      textarea.value = text;
       textarea.setAttribute("readonly", "");
       textarea.style.position = "fixed";
       textarea.style.opacity = "0";
@@ -1901,7 +2299,25 @@
       document.execCommand("copy");
       textarea.remove();
     }
+  }
+
+  async function copyPlaytestReport() {
+    await copyText(buildPlaytestReport());
     buttons.copyReport.textContent = "Report Copied";
+  }
+
+  async function copyScoreCard() {
+    if (!state.lastResult) return;
+    const result = state.lastResult;
+    const card = [
+      "TACTICAL ARENA",
+      `Level ${result.level}: ${result.arena}`,
+      result.won ? "MISSION COMPLETE" : "MISSION FAILED",
+      `Score ${result.score} | Kills ${result.kills} | ${result.time.toFixed(1)}s`,
+      `Objective: ${result.objective}`
+    ].join("\n");
+    await copyText(card);
+    buttons.copyScore.textContent = "Score Copied";
   }
 
   document.addEventListener("keydown", (event) => {
@@ -1984,7 +2400,16 @@
   buttons.resume.addEventListener("click", resumeGame);
   buttons.restartPause.addEventListener("click", startRound);
   buttons.restart.addEventListener("click", startRound);
+  buttons.copyScore.addEventListener("click", copyScoreCard);
   buttons.copyReport.addEventListener("click", copyPlaytestReport);
+  ui.upgradeChoices.addEventListener("click", (event) => {
+    const choice = event.target.closest("[data-upgrade]");
+    if (choice) chooseUpgrade(choice.dataset.upgrade);
+  });
+  ui.accentChoices.addEventListener("click", (event) => {
+    const swatch = event.target.closest("[data-accent]");
+    if (swatch) selectAccent(swatch.dataset.accent);
+  });
   buttons.menu.addEventListener("click", () => {
     showOnly("menu");
     updateBestStats();
@@ -2019,6 +2444,20 @@
     jump,
     look: handleLook,
     damagePlayer,
+    chooseUpgrade,
+    killBot(index) {
+      const bot = state.bots[index];
+      if (bot?.alive) damageBot(bot, 999);
+    },
+    completeObjective() {
+      state.objectiveProgress = activeArena.objective.goal;
+      state.objectiveComplete = true;
+      for (const prop of arenaProps) {
+        if (prop.type === "objective") prop.active = false;
+      }
+      checkRoundWin();
+      updateHud();
+    },
     killAllBots() {
       for (const bot of state.bots) {
         if (bot.alive) damageBot(bot, 999);
@@ -2043,6 +2482,14 @@
       return {
         mode: state.mode,
         arena: activeArena.name,
+        level: activeArenaIndex + 1,
+        objective: {
+          type: activeArena.objective.type,
+          progress: Number(state.objectiveProgress.toFixed(2)),
+          goal: activeArena.objective.goal,
+          complete: state.objectiveComplete
+        },
+        difficulty: Number(state.difficulty.toFixed(2)),
         countdown: Number(state.countdown.toFixed(2)),
         fps: state.fps,
         metrics: metricSnapshot(),
@@ -2062,13 +2509,15 @@
           vz: Number(player.vz.toFixed(3)),
           grounded: player.grounded,
           angle: Number(player.a.toFixed(3)),
-          healthKits: player.healthKits
+          healthKits: player.healthKits,
+          upgrades: player.upgrades.slice(),
+          accent: player.accent
         },
         healthKits: arenaProps
           .filter((prop) => prop.type === "health")
           .map((prop) => ({ x: prop.x, y: prop.y, active: prop.active !== false })),
         botHealth: state.bots.map((bot) => Math.max(0, Math.ceil(bot.hp))),
-        botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name })),
+        botStates: state.bots.map((bot) => ({ state: bot.state, aiming: bot.aiming, name: bot.name, type: bot.type.id, maxHp: bot.maxHp })),
         botPositions: state.bots.map((bot) => ({ x: Number(bot.x.toFixed(3)), y: Number(bot.y.toFixed(3)), z: Number(bot.z.toFixed(3)) })),
         canvas: { width: canvas.width, height: canvas.height }
       };

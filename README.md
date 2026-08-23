@@ -1,6 +1,8 @@
 # Tactical Arena
 
-Tactical Arena is a dependency-free browser arena shooter with a colorful pseudo-3D raycast renderer, animated cartoon bots, two weapons, three rotating arenas, generated audio, radar, score persistence, and a complete three-minute round loop.
+Tactical Arena is a dependency-free browser arena shooter with a colorful pseudo-3D raycast renderer, animated cartoon bots, two weapons, five campaign levels, generated audio, radar, score persistence, and a complete three-minute round loop.
+
+The campaign mixes elimination, collection, and hold-zone objectives. Rifle, rusher, heavy, and scout bots have distinct silhouettes and combat behavior. Players choose temporary upgrades after their second and fourth eliminations, unlock weapon colors through high scores, and can copy a shareable score card after each round. An adaptive director adjusts bot pressure using the local win history.
 
 After each round, the game can copy an anonymous local playtest report containing completion, win, replay, control-use, FPS, and error metrics. No data is transmitted by the game.
 
@@ -35,4 +37,4 @@ Open `http://127.0.0.1:4789`.
 
 The game uses original geometric artwork and generated Web Audio effects. No third-party game assets or copyrighted franchise material are included.
 
-Each arena also contains two single-use health kits that restore up to 40 health.
+Each arena also contains two single-use health kits that restore 40 health, with additional healing from the Reinforced upgrade.
