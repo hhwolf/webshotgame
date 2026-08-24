@@ -1,6 +1,6 @@
-# Tactical Arena
+# The Snap League
 
-Tactical Arena is a dependency-free browser arena shooter with a colorful pseudo-3D raycast renderer, animated cartoon bots, two weapons, six multi-floor campaign levels, generated audio, radar, score persistence, and a complete three-minute round loop.
+The Snap League is a compact Three.js browser arena shooter with articulated toy-like rivals, two weapons, six multi-floor campaign arenas, generated audio, radar, score persistence, and a complete three-minute match loop. It retains the launchable app name **Tactical Arena**.
 
 The campaign mixes elimination, collection, and hold-zone objectives across connected decks. Rifle, rusher, heavy, and scout bots have distinct silhouettes and combat behavior, and the three-floor Apex Foundry finale adds the shielded, multi-phase Atlas boss. Players choose temporary upgrades after their second and fourth eliminations, unlock weapon colors through high scores, and can copy a shareable score card after each round. An adaptive director adjusts bot pressure using the local win history.
 
@@ -20,10 +20,17 @@ Use one fresh browser profile per tester and collect the copied report after the
 ## Play locally
 
 ```bash
-python3 -m http.server 4789 --bind 127.0.0.1
+npm install
+npm run dev
 ```
 
-Open `http://127.0.0.1:4789`.
+Use the local URL printed by Vite.
+
+For a production build:
+
+```bash
+npm run build
+```
 
 ## Controls
 
@@ -36,6 +43,6 @@ Open `http://127.0.0.1:4789`.
 - `1` / `2`: switch weapons
 - `Esc`: pause or release pointer lock
 
-The game uses original geometric artwork and generated Web Audio effects. No third-party game assets or copyrighted franchise material are included.
+The game uses original procedural geometry, generated Web Audio effects, and Three.js under its MIT license. No third-party game artwork or copyrighted franchise material is included. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
 Every floor includes access to single-use health kits that restore 40 health, with additional healing from the Reinforced upgrade.

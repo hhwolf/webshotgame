@@ -1,10 +1,10 @@
 {
-  "name": "Tactical Arena",
-  "short_name": "Tactical Arena",
-  "start_url": "./index.html",
+  "name": "Tactical Arena: The Snap League",
+  "short_name": "Snap League",
+  "start_url": "./",
   "display": "fullscreen",
-  "background_color": "#0b1014",
-  "theme_color": "#1f9d8a",
+  "background_color": "#182538",
+  "theme_color": "#ffcf3f",
   "icons": [
     {
       "src": "./icon.svg",

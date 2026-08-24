@@ -1,141 +1,103 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tactical Arena</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#102938">
+    <title>Tactical Arena: The Snap League</title>
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=6">
+    <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <main id="app" aria-label="Tactical Arena game">
-      <canvas id="gameCanvas"></canvas>
+    <main id="app">
+      <div id="gameMount" aria-label="Tactical Arena 3D game"></div>
 
       <section id="hud" class="hud hidden" aria-live="polite">
-        <div class="hud-left">
-          <div class="readout">
-            <span class="label">Health</span>
-            <span id="healthText" class="value">100</span>
-          </div>
-          <div class="readout">
-            <span class="label">Ammo</span>
-            <span id="ammoText" class="value">12 / 48</span>
-          </div>
-          <div class="readout">
-            <span class="label">Weapon</span>
-            <span id="weaponText" class="value">Pistol</span>
-          </div>
+        <div class="hud-team">
+          <span class="team-mark">SL</span>
+          <div><small id="captainText">Bolt</small><strong>SNAP LEAGUE</strong></div>
         </div>
-        <div class="hud-center">
-          <div class="readout arena-readout">
-            <span id="levelText" class="label">Level 1 / 6 · Floor 1 / 2</span>
-            <span id="arenaText" class="value">Cargo Court</span>
-            <span id="objectiveText" class="objective-value">Clear the squad</span>
-          </div>
-          <div class="readout">
-            <span class="label">Bots</span>
-            <span id="botsText" class="value">5</span>
-          </div>
-          <div class="readout">
-            <span class="label">Timer</span>
-            <span id="timerText" class="value">03:00</span>
-          </div>
-          <div class="readout">
-            <span class="label">Score</span>
-            <span id="scoreText" class="value">0</span>
-          </div>
+        <div class="hud-stats">
+          <div class="stat health-stat"><small>Integrity</small><strong id="healthText">100</strong><span class="meter"><i id="healthBar"></i></span></div>
+          <div class="stat"><small id="weaponText">Snap Pistol</small><strong id="ammoText">12 / 48</strong></div>
+          <div class="match-card"><small id="levelText">Qualifier 1 · Deck 1/2</small><strong id="arenaText">Cargo Court</strong><span id="objectiveText">Clear the rival squad</span></div>
+          <div class="stat compact"><small>Rivals</small><strong id="botsText">5</strong></div>
+          <div class="stat compact"><small>Clock</small><strong id="timerText">03:00</strong></div>
+          <div class="stat compact"><small>Score</small><strong id="scoreText">0</strong></div>
         </div>
-        <div class="hud-right">
-          <button id="muteButton" class="icon-button" type="button" aria-label="Mute audio" title="Mute audio">
-            <span class="audio-glyph" aria-hidden="true"></span>
-          </button>
-          <canvas id="radarCanvas" width="150" height="150" aria-label="Radar"></canvas>
+        <div class="hud-tools">
+          <button id="muteButton" class="icon-button" type="button" aria-label="Mute audio" title="Mute audio">♪</button>
+          <canvas id="radarCanvas" width="160" height="160" aria-label="Deck radar"></canvas>
         </div>
       </section>
 
-      <div id="crosshair" class="crosshair hidden" aria-hidden="true">
-        <span></span><span></span><span></span><span></span>
-      </div>
-      <div id="hitMarker" class="hit-marker hidden" aria-hidden="true">x</div>
-      <div id="damageVignette" class="damage-vignette hidden" aria-hidden="true"></div>
-      <div id="roundCallout" class="round-callout hidden" aria-live="assertive"></div>
-      <div id="interactionPrompt" class="interaction-prompt hidden" aria-live="polite">E · Use lift</div>
-      <div id="bossHud" class="boss-hud hidden" aria-live="polite">
-        <div class="boss-heading"><span>Atlas</span><span id="bossPhaseText">Phase 1</span></div>
-        <div class="boss-meter"><span id="bossHealthBar"></span></div>
-        <div class="boss-meter shield"><span id="bossShieldBar"></span></div>
+      <div id="bossHud" class="boss-hud hidden">
+        <div><strong>ATLAS</strong><span id="bossPhaseText">Shielded</span></div>
+        <span class="boss-meter"><i id="bossHealthBar"></i></span>
+        <span class="boss-meter shield"><i id="bossShieldBar"></i></span>
       </div>
 
-      <section id="menu" class="panel menu">
-        <div class="brand-icon" aria-hidden="true">
-          <span></span>
+      <div id="crosshair" class="crosshair hidden" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+      <div id="hitMarker" class="hit-marker hidden" aria-hidden="true">×</div>
+      <div id="damageVignette" class="damage-vignette hidden"></div>
+      <div id="announcement" class="announcement hidden"></div>
+      <div id="interactionPrompt" class="interaction-prompt hidden"><kbd>E</kbd><span>Ride lift</span></div>
+
+      <section id="menu" class="screen menu-screen">
+        <div class="broadcast-kicker"><span>Season 03</span><span>Live Training Circuit</span></div>
+        <div class="menu-main">
+          <div class="league-logo" aria-hidden="true"><span>S</span><i></i></div>
+          <p class="eyebrow">Toy Sports Federation presents</p>
+          <h1>Tactical Arena</h1>
+          <p class="league-title">The Snap League</p>
+          <p class="menu-copy">Pick a captain. Clear the decks. Reach the championship.</p>
+          <div class="menu-actions">
+            <button id="startButton" class="primary" type="button">Enter the League</button>
+            <button id="controlsButton" type="button">Controls</button>
+          </div>
+          <p id="bestStats" class="best-stats">Best score 0</p>
         </div>
-        <h1>Tactical Arena</h1>
-        <p class="subhead">Clear the training site before time runs out.</p>
-        <div class="menu-actions">
-          <button id="startButton" class="primary" type="button">Start Game</button>
-          <button id="controlsButton" type="button">Controls</button>
-        </div>
-        <div id="bestStats" class="best-stats">Best score: 0</div>
-        <div class="loadout-picker">
-          <span class="label">Weapon Color</span>
-          <div id="accentChoices" class="accent-choices" aria-label="Weapon color"></div>
+        <div class="captain-panel">
+          <div class="section-heading"><span>Choose Captain</span><small>Cosmetic loadout</small></div>
+          <div id="captainChoices" class="captain-choices"></div>
+          <div class="settings-row">
+            <label><input id="reducedMotion" type="checkbox"><span>Reduced motion</span></label>
+            <label><span>Quality</span><select id="qualitySelect"><option value="high">High</option><option value="low">Low</option></select></label>
+          </div>
         </div>
         <div id="controlsPanel" class="controls-panel hidden">
-          <dl>
-            <div><dt>Move</dt><dd>WASD</dd></div>
-            <div><dt>Jump</dt><dd>Space</dd></div>
-            <div><dt>Lift</dt><dd>E near a lift</dd></div>
-            <div><dt>Aim</dt><dd>Mouse, pointer lock, or drag</dd></div>
-            <div><dt>Shoot</dt><dd>Left click</dd></div>
-            <div><dt>Reload</dt><dd>R</dd></div>
-            <div><dt>Switch</dt><dd>1 pistol, 2 rifle</dd></div>
-            <div><dt>Pause</dt><dd>Esc</dd></div>
-          </dl>
+          <div><kbd>WASD</kbd><span>Move</span></div><div><kbd>Mouse</kbd><span>Aim</span></div>
+          <div><kbd>Click</kbd><span>Fire</span></div><div><kbd>R</kbd><span>Reload</span></div>
+          <div><kbd>Space</kbd><span>Jump</span></div><div><kbd>E</kbd><span>Lift</span></div>
+          <div><kbd>1 / 2</kbd><span>Weapons</span></div><div><kbd>Esc</kbd><span>Pause</span></div>
         </div>
       </section>
 
-      <section id="pausePanel" class="panel hidden">
-        <h2>Paused</h2>
-        <p class="subhead">Pointer lock is released while paused.</p>
-        <div class="menu-actions">
-          <button id="resumeButton" class="primary" type="button">Resume</button>
-          <button id="restartPauseButton" type="button">Restart Round</button>
-        </div>
-        <div class="controls-panel">
-          <dl>
-            <div><dt>Move</dt><dd>WASD</dd></div>
-            <div><dt>Jump</dt><dd>Space</dd></div>
-            <div><dt>Lift</dt><dd>E near a lift</dd></div>
-            <div><dt>Aim</dt><dd>Mouse or drag</dd></div>
-            <div><dt>Shoot</dt><dd>Left click</dd></div>
-            <div><dt>Reload</dt><dd>R</dd></div>
-            <div><dt>Switch</dt><dd>1 / 2</dd></div>
-          </dl>
-        </div>
+      <section id="pausePanel" class="modal hidden">
+        <p class="eyebrow">Match suspended</p><h2>Paused</h2>
+        <div class="menu-actions"><button id="resumeButton" class="primary">Resume</button><button id="restartPauseButton">Restart Match</button></div>
+        <p class="modal-note">Pointer lock is released. Press Esc to return.</p>
       </section>
 
-      <section id="upgradePanel" class="panel upgrade-panel hidden">
-        <h2>Choose Upgrade</h2>
-        <p class="subhead">Pick one boost for the rest of this level.</p>
+      <section id="upgradePanel" class="modal upgrade-modal hidden">
+        <p class="eyebrow">Captain perk unlocked</p><h2>Choose Upgrade</h2>
         <div id="upgradeChoices" class="upgrade-choices"></div>
       </section>
 
-      <section id="roundPanel" class="panel hidden">
-        <h2 id="roundTitle">Round Complete</h2>
-        <p id="roundSummary" class="subhead"></p>
+      <section id="roundPanel" class="modal results-modal hidden">
+        <p id="roundKicker" class="eyebrow">Match report</p><h2 id="roundTitle">Round Won</h2>
+        <p id="roundSummary" class="round-summary"></p>
         <div id="scoreboard" class="scoreboard"></div>
         <div id="benchmarkSummary" class="benchmark-summary"></div>
-        <div class="menu-actions">
-          <button id="restartButton" class="primary" type="button">Restart Round</button>
-          <button id="copyScoreButton" type="button">Copy Score Card</button>
-          <button id="copyReportButton" type="button">Copy Playtest Report</button>
-          <button id="menuButton" type="button">Main Menu</button>
+        <div class="menu-actions results-actions">
+          <button id="restartButton" class="primary">Next Match</button>
+          <button id="copyScoreButton">Copy Score Card</button>
+          <button id="copyReportButton">Copy Playtest Report</button>
+          <button id="menuButton">League Lobby</button>
         </div>
       </section>
     </main>
-
-    <script src="./game.js?v=6"></script>
+    <script type="module" src="/src/game.js"></script>
   </body>
 </html>
