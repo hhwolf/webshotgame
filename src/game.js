@@ -376,43 +376,58 @@ function syncFloorVisibility() {
   state.bots.forEach((bot) => { bot.figure.visible = bot.alive && bot.floor === player.floor; });
 }
 
-function limb(parent, radius, length, color, x, y, z, rotationZ = 0, toon = false) {
-  const pivot = new THREE.Group();
-  pivot.position.set(x, y, z); pivot.rotation.z = rotationZ; parent.add(pivot);
-  const part = mesh(new THREE.CapsuleGeometry(radius, length, 4, 8), toon ? characterMaterial(color) : material(color, 0.58), pivot, [0, -length * 0.45, 0]);
-  return { pivot, part };
-}
-
 function addCartoonFace(root, profile, palette, faceIndex, isBoss) {
   const radius = profile.headRadius;
-  const centerY = 2.17;
+  const faceRoot = new THREE.Group(); faceRoot.position.y = 2.17; root.add(faceRoot);
   const skin = characterMaterial(palette.skin);
   const dark = characterMaterial(palette.dark);
   const white = characterMaterial(0xfffbeb, 0x24211e);
-  const head = mesh(new THREE.SphereGeometry(radius, 16, 12), skin, root, [0, centerY, 0]);
+  const head = mesh(new THREE.SphereGeometry(radius, 16, 12), skin, faceRoot);
   head.scale.set(profile.headWidth, 1.04, 0.92);
-  const hair = mesh(new THREE.SphereGeometry(radius * 1.025, 14, 8, 0, TAU, 0, Math.PI / 2), dark, root, [0, centerY + 0.035, -0.005]);
+  const hair = mesh(new THREE.SphereGeometry(radius * 1.025, 14, 8, 0, TAU, 0, Math.PI / 2), dark, faceRoot, [0, 0.035, -0.005]);
   hair.scale.set(profile.headWidth, 1.04, 0.94);
 
-  const eyeY = centerY + 0.035;
+  const eyeY = 0.035;
   const eyeZ = radius * 0.84;
   [-1, 1].forEach((side) => {
-    const eye = mesh(new THREE.SphereGeometry(radius * 0.105, 10, 7), white, root, [side * radius * 0.34, eyeY, eyeZ]);
+    const eye = mesh(new THREE.SphereGeometry(radius * 0.105, 10, 7), white, faceRoot, [side * radius * 0.34, eyeY, eyeZ]);
     eye.scale.x = 1.18;
-    mesh(new THREE.SphereGeometry(radius * 0.05, 8, 6), characterMaterial(faceIndex % 2 ? 0x173f5a : 0x174f43), root, [side * radius * 0.34, eyeY, eyeZ + radius * 0.09]);
-    mesh(new THREE.BoxGeometry(radius * 0.28, radius * 0.055, radius * 0.07), dark, root,
+    mesh(new THREE.SphereGeometry(radius * 0.05, 8, 6), characterMaterial(faceIndex % 2 ? 0x173f5a : 0x174f43), faceRoot, [side * radius * 0.34, eyeY, eyeZ + radius * 0.09]);
+    mesh(new THREE.BoxGeometry(radius * 0.28, radius * 0.055, radius * 0.07), dark, faceRoot,
       [side * radius * 0.32, eyeY + radius * 0.22, eyeZ + radius * 0.035], [0, 0, side * (faceIndex % 2 ? -0.11 : 0.08)]);
   });
-  mesh(new THREE.ConeGeometry(radius * 0.085, radius * 0.24, 8), skin, root,
-    [0, centerY - radius * 0.06, eyeZ + radius * 0.05], [Math.PI / 2, 0, 0]);
-  const smile = mesh(new THREE.TorusGeometry(radius * 0.13, radius * 0.025, 5, 10, Math.PI), dark, root,
-    [0, centerY - radius * 0.29, eyeZ + radius * 0.06], [0, 0, Math.PI]);
+  mesh(new THREE.ConeGeometry(radius * 0.085, radius * 0.24, 8), skin, faceRoot,
+    [0, -radius * 0.06, eyeZ + radius * 0.05], [Math.PI / 2, 0, 0]);
+  const smile = mesh(new THREE.TorusGeometry(radius * 0.13, radius * 0.025, 5, 10, Math.PI), dark, faceRoot,
+    [0, -radius * 0.29, eyeZ + radius * 0.06], [0, 0, Math.PI]);
   smile.scale.y = faceIndex % 3 === 2 ? 0.55 : 0.8;
-  [-1, 1].forEach((side) => mesh(new THREE.SphereGeometry(radius * 0.16, 9, 7), skin, root, [side * radius * profile.headWidth, centerY, 0]));
+  [-1, 1].forEach((side) => mesh(new THREE.SphereGeometry(radius * 0.16, 9, 7), skin, faceRoot, [side * radius * profile.headWidth, 0, 0]));
 
-  const visor = mesh(new THREE.BoxGeometry(radius * (isBoss ? 1.5 : 1.15), radius * 0.12, radius * 0.16), characterMaterial(palette.accent, palette.accent), root,
-    [0, centerY + radius * 0.68, radius * 0.35]);
-  return { head, hair, visor };
+  const visor = mesh(new THREE.BoxGeometry(radius * (isBoss ? 1.5 : 1.15), radius * 0.12, radius * 0.16), characterMaterial(palette.accent, palette.accent), faceRoot,
+    [0, radius * 0.68, radius * 0.35]);
+  return { faceRoot, head, hair, visor };
+}
+
+function articulatedArm(parent, profile, palette, side) {
+  const upperLength = profile.armLength * 0.54;
+  const forearmLength = profile.armLength * 0.46;
+  const pivot = new THREE.Group(); pivot.position.set(side * profile.shoulderX, 1.72, 0); parent.add(pivot);
+  mesh(new THREE.CapsuleGeometry(profile.armRadius, Math.max(0.06, upperLength - profile.armRadius * 1.5), 4, 8), characterMaterial(palette.body), pivot, [0, -upperLength * 0.5, 0]);
+  const elbow = new THREE.Group(); elbow.position.y = -upperLength; pivot.add(elbow);
+  mesh(new THREE.CapsuleGeometry(profile.armRadius * 0.9, Math.max(0.05, forearmLength - profile.armRadius * 1.35), 4, 8), characterMaterial(palette.body), elbow, [0, -forearmLength * 0.5, 0]);
+  const hand = mesh(new THREE.SphereGeometry(profile.armRadius * 0.96, 9, 7), characterMaterial(palette.skin), elbow, [0, -forearmLength, 0]);
+  return { pivot, elbow, hand };
+}
+
+function articulatedLeg(parent, profile, palette, side) {
+  const thighLength = profile.legLength * 0.52;
+  const shinLength = profile.legLength * 0.48;
+  const pivot = new THREE.Group(); pivot.position.set(side * profile.legX, 0.94, 0); parent.add(pivot);
+  mesh(new THREE.CapsuleGeometry(profile.legRadius, Math.max(0.07, thighLength - profile.legRadius * 1.45), 4, 8), characterMaterial(palette.dark), pivot, [0, -thighLength * 0.5, 0]);
+  const knee = new THREE.Group(); knee.position.y = -thighLength; pivot.add(knee);
+  mesh(new THREE.CapsuleGeometry(profile.legRadius * 0.9, Math.max(0.06, shinLength - profile.legRadius * 1.35), 4, 8), characterMaterial(palette.dark), knee, [0, -shinLength * 0.5, 0]);
+  const boot = mesh(new THREE.BoxGeometry(profile.bootWidth, 0.2, profile.bootWidth * 1.42), characterMaterial(palette.accent), knee, [0, -shinLength, 0.1]);
+  return { pivot, knee, boot };
 }
 
 function addRoleGear(root, role, profile, palette) {
@@ -448,18 +463,16 @@ function createFigure(role, type, palette, isBoss = false, faceIndex = 0) {
   hips.rotation.z = Math.PI / 2; hips.scale.z = profile.chestDepth;
   const vest = mesh(new THREE.BoxGeometry(profile.chestRadius * profile.chestWidth * 1.45, 0.42, profile.chestRadius * profile.chestDepth * 1.78), characterMaterial(palette.dark), root, [0, 1.43, 0.04]);
   mesh(new THREE.BoxGeometry(profile.chestRadius * profile.chestWidth * 1.05, 0.11, profile.chestRadius * profile.chestDepth * 1.92), characterMaterial(palette.accent, palette.accent), root, [0, 1.55, 0.05]);
-  const { head, hair, visor } = addCartoonFace(root, profile, palette, faceIndex, isBoss);
+  const { faceRoot, head, hair, visor } = addCartoonFace(root, profile, palette, faceIndex, isBoss);
   addRoleGear(root, role, profile, palette);
 
-  const leftArm = limb(root, profile.armRadius, profile.armLength, palette.body, -profile.shoulderX, 1.72, 0, 0.14, true);
-  const rightArm = limb(root, profile.armRadius, profile.armLength, palette.body, profile.shoulderX, 1.72, 0, -0.14, true);
+  const leftArm = articulatedArm(root, profile, palette, -1);
+  const rightArm = articulatedArm(root, profile, palette, 1);
   const leftShoulder = mesh(new THREE.SphereGeometry(profile.armRadius * 1.4, 10, 7), characterMaterial(palette.accent), root, [-profile.shoulderX, 1.72, 0]);
   const rightShoulder = mesh(new THREE.SphereGeometry(profile.armRadius * 1.4, 10, 7), characterMaterial(palette.accent), root, [profile.shoulderX, 1.72, 0]);
-  [leftArm, rightArm].forEach((arm) => mesh(new THREE.SphereGeometry(profile.armRadius * 0.88, 9, 7), characterMaterial(palette.skin), arm.pivot, [0, -profile.armLength * 0.92, 0]));
 
-  const leftLeg = limb(root, profile.legRadius, profile.legLength, palette.dark, -profile.legX, 0.91, 0, 0, true);
-  const rightLeg = limb(root, profile.legRadius, profile.legLength, palette.dark, profile.legX, 0.91, 0, 0, true);
-  [leftLeg, rightLeg].forEach((leg, index) => mesh(new THREE.BoxGeometry(profile.bootWidth, 0.2, profile.bootWidth * 1.42), characterMaterial(palette.accent), leg.pivot, [0, -profile.legLength * 0.92, 0.1]));
+  const leftLeg = articulatedLeg(root, profile, palette, -1);
+  const rightLeg = articulatedLeg(root, profile, palette, 1);
 
   const weaponGroup = new THREE.Group();
   weaponGroup.position.set(0.08, 1.45, 0.49); root.add(weaponGroup);
@@ -470,9 +483,10 @@ function createFigure(role, type, palette, isBoss = false, faceIndex = 0) {
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0, profile.weaponLength * 0.75); weaponGroup.add(muzzle);
   const botMuzzleFlash = mesh(new THREE.IcosahedronGeometry(isBoss ? 0.15 : 0.1, 0), new THREE.MeshBasicMaterial({ color: 0xffdf72, transparent: true, opacity: 0 }), weaponGroup, [0, 0, profile.weaponLength * 0.78]);
   root.userData.rig = {
-    torso, hips, vest, head, hair, visor, leftShoulder, rightShoulder,
-    leftArm: leftArm.pivot, rightArm: rightArm.pivot, leftLeg: leftLeg.pivot, rightLeg: rightLeg.pivot,
-    weapon: weaponGroup, muzzle, botMuzzleFlash, profile
+    torso, torsoBaseScale: torso.scale.clone(), hips, vest, faceRoot, head, hair, visor, leftShoulder, rightShoulder,
+    leftArm: leftArm.pivot, rightArm: rightArm.pivot, leftElbow: leftArm.elbow, rightElbow: rightArm.elbow,
+    leftLeg: leftLeg.pivot, rightLeg: rightLeg.pivot, leftKnee: leftLeg.knee, rightKnee: rightLeg.knee,
+    weapon: weaponGroup, weaponBaseZ: weaponGroup.position.z, muzzle, botMuzzleFlash, profile
   };
   return root;
 }
@@ -809,7 +823,12 @@ function updateBots(dt) {
     bot.anim += dt * (bot.alive ? 5 : 2); bot.hurt = Math.max(0, bot.hurt - dt); bot.flash = Math.max(0, bot.flash - dt);
     const rig = bot.figure.userData.rig;
     if (!bot.alive) {
-      bot.death = Math.max(0, bot.death - dt * 1.8); bot.figure.scale.setScalar(bot.type.scale * bot.death); bot.figure.rotation.z += dt * 2.2;
+      bot.death = Math.max(0, bot.death - dt * 0.95);
+      const fall = 1 - bot.death;
+      const baseScale = bot.type.scale;
+      bot.figure.scale.set(baseScale * (1 + fall * 0.08), baseScale * Math.max(0.5, 1 - fall * 0.45), baseScale * (1 + fall * 0.08));
+      bot.figure.rotation.z = (bot.id % 2 ? -1 : 1) * Math.min(1, fall * 1.35) * 1.25;
+      bot.figure.rotation.x = -Math.min(1, fall * 1.6) * 0.28;
       if (bot.death <= 0) bot.figure.visible = false;
       continue;
     }
@@ -839,10 +858,40 @@ function updateBots(dt) {
       if (pd > 0.12) { moveEntity(bot, (tx - bot.x) / pd * bot.type.speed * 0.42 * dt, (tz - bot.z) / pd * bot.type.speed * 0.42 * dt); moving = true; bot.figure.rotation.y = Math.atan2(tx - bot.x, tz - bot.z); }
     }
     positionBot(bot);
-    const stride = moving ? Math.sin(bot.anim) * 0.55 : 0;
-    rig.leftLeg.rotation.x = stride; rig.rightLeg.rotation.x = -stride; rig.leftArm.rotation.x = -stride * 0.35; rig.rightArm.rotation.x = stride * 0.25 - (sees ? 0.65 : 0);
-    rig.torso.rotation.z = bot.hurt > 0 ? 0.16 : Math.sin(bot.anim * 0.3) * 0.015;
-    rig.weapon.rotation.x = bot.flash > 0 ? -0.12 : 0;
+    const profile = rig.profile;
+    const hit = clamp(bot.hurt / 0.18, 0, 1);
+    const stride = moving ? Math.sin(bot.anim) * profile.gait : 0;
+    const aiming = sees && state.countdown <= 0;
+    const baseScale = bot.type.scale;
+    bot.figure.scale.set(baseScale * (1 + hit * 0.06), baseScale * (1 - hit * 0.08), baseScale * (1 + hit * 0.06));
+    bot.figure.rotation.z = (bot.id % 2 ? -1 : 1) * hit * 0.07;
+    bot.figure.rotation.x = 0;
+
+    rig.leftLeg.rotation.x = stride;
+    rig.rightLeg.rotation.x = -stride;
+    rig.leftKnee.rotation.x = 0.08 + Math.max(0, -stride) * 0.5;
+    rig.rightKnee.rotation.x = 0.08 + Math.max(0, stride) * 0.5;
+    if (aiming) {
+      rig.leftArm.rotation.set(-0.78, 0, 0.38);
+      rig.rightArm.rotation.set(-0.78, 0, -0.38);
+      rig.leftElbow.rotation.set(-0.62, 0, -0.08);
+      rig.rightElbow.rotation.set(-0.62, 0, 0.08);
+    } else {
+      rig.leftArm.rotation.set(-stride * 0.45, 0, 0.12);
+      rig.rightArm.rotation.set(stride * 0.45, 0, -0.12);
+      rig.leftElbow.rotation.set(0.08 + Math.abs(stride) * 0.12, 0, 0);
+      rig.rightElbow.rotation.set(0.08 + Math.abs(stride) * 0.12, 0, 0);
+    }
+    const breath = Math.sin(bot.anim * 0.42) * 0.012;
+    rig.torso.scale.copy(rig.torsoBaseScale); rig.torso.scale.y *= 1 + breath;
+    rig.torso.rotation.z = hit * (bot.id % 2 ? -0.12 : 0.12) + Math.sin(bot.anim * 0.3) * 0.012;
+    rig.hips.rotation.y = moving ? Math.sin(bot.anim) * 0.08 : 0;
+    rig.faceRoot.position.y = 2.17 + (moving ? Math.abs(Math.sin(bot.anim)) * 0.025 : breath * 0.7);
+    rig.faceRoot.rotation.z = hit * (bot.id % 2 ? 0.16 : -0.16);
+    rig.weapon.position.z = rig.weaponBaseZ - (bot.flash > 0 ? 0.07 : 0);
+    rig.weapon.rotation.x = bot.flash > 0 ? -0.1 : 0;
+    rig.botMuzzleFlash.material.opacity = clamp(bot.flash * 12, 0, 1);
+    rig.botMuzzleFlash.scale.setScalar(0.8 + clamp(bot.flash * 10, 0, 1) * 1.6);
     if (bot.shieldMesh) { bot.shieldMesh.visible = bot.shield > 0; bot.shieldMesh.rotation.y += dt * 0.45; }
     if (bot.role === "boss") {
       const phaseColor = [0xde4456, 0xf07843, 0xffcf55][bot.phase - 1];
