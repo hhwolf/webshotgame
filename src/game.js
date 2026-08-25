@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { ARENAS, BOT_TYPES, CAPTAINS, UPGRADES, WEAPONS } from "./data.js";
+import { challengeForArena, estimatedWinRate, normalizeArenaRecords, recordArenaResult, TARGET_WIN_RATE } from "./difficulty.js";
 import { movementVelocity } from "./movement.js";
 
 const CELL = 3.1;
@@ -62,7 +63,7 @@ const state = {
   reducedMotion: localStorage.getItem("snapLeague.reducedMotion") === "true", captainId: localStorage.getItem("snapLeague.captain") || "bolt",
   bestScore: Number(localStorage.getItem("tacticalArena.bestScore") || 0), bestTime: Number(localStorage.getItem("tacticalArena.fastestClear") || 0),
   audio: null, shootHeld: false, shake: 0, damageFlash: 0, hitFlash: 0, announcementTime: 0, floorFade: 0, matchStarts: 0, hudTimer: 0, radarTimer: 0,
-  metrics: loadMetrics()
+  metrics: loadMetrics(), arenaRecords: loadArenaRecords(), challenge: 1
 };
 
 const player = {
@@ -111,6 +112,16 @@ function loadMetrics() {
 }
 
 function saveMetrics() { localStorage.setItem("snapLeague.metrics", JSON.stringify(state.metrics)); }
+
+function loadArenaRecords() {
+  try {
+    return normalizeArenaRecords(JSON.parse(localStorage.getItem("snapLeague.arenaResults") || "[]"), ARENAS.length);
+  } catch (_error) {
+    return normalizeArenaRecords([], ARENAS.length);
+  }
+}
+
+function saveArenaRecords() { localStorage.setItem("snapLeague.arenaResults", JSON.stringify(state.arenaRecords)); }
 
 function material(color, _roughness = 0.68, _metalness = 0.04, emissive = 0x000000) {
   return new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: emissive ? 0.55 : 0 });
@@ -426,7 +437,8 @@ function createBot(index, spawn) {
     id: index, name: isBoss ? "Atlas" : ["Rook", "Vex", "Pico", "Dash", "Mako"][index], role, type, figure,
     x: spawn.x, z: spawn.z, floor, hp: type.hp, maxHp: type.hp, shield: type.shield || 0, maxShield: type.shield || 0,
     alive: true, death: 0, phase: 1, state: "patrol", target: { x: spawn.x, z: spawn.z }, patrolAngle: index * 1.2,
-    shootTimer: 1 + Math.random(), hurt: 0, flash: 0, anim: Math.random() * TAU, radius: 0.23, aiming: false
+    shootTimer: (0.6 + Math.random() * 0.65) / (1 + (state.challenge - 1) * 0.8),
+    hurt: 0, flash: 0, anim: Math.random() * TAU, radius: 0.23, aiming: false
   };
   figure.traverse((child) => { if (child.isMesh) child.userData.bot = bot; });
   positionBot(bot);
@@ -488,6 +500,7 @@ function announce(title, subtitle = "", duration = 1.2) {
 }
 
 function resetRound() {
+  state.challenge = challengeForArena(state.arenaIndex, state.arenaRecords[state.arenaIndex]);
   buildArena(state.arenaIndex);
   Object.assign(player, {
     x: state.arena.spawn.x, z: state.arena.spawn.z, floor: 0, yaw: state.arena.spawn.yaw, pitch: 0, yOffset: 0, vy: 0,
@@ -733,6 +746,9 @@ function collectProps(dt) {
 }
 
 function updateBots(dt) {
+  const speedScale = clamp(1 + (state.challenge - 1) * 0.6, 0.95, 1.32);
+  const cadenceScale = clamp(1 + (state.challenge - 1) * 0.8, 0.94, 1.44);
+  const detectionRange = clamp(9.5 + (state.challenge - 1) * 5, 9.1, 12.25);
   for (const bot of state.bots) {
     bot.anim += dt * (bot.alive ? 5 : 2); bot.hurt = Math.max(0, bot.hurt - dt); bot.flash = Math.max(0, bot.flash - dt);
     const rig = bot.figure.userData.rig;
@@ -743,7 +759,7 @@ function updateBots(dt) {
     }
     const sameFloor = bot.floor === player.floor;
     const dist = Math.hypot(bot.x - player.x, bot.z - player.z);
-    const sees = sameFloor && dist < 9.5 && hasLineOfSight(bot, player);
+    const sees = sameFloor && dist < detectionRange && hasLineOfSight(bot, player);
     let moving = false;
     if (sees && state.countdown <= 0) {
       bot.state = "attack";
@@ -751,14 +767,14 @@ function updateBots(dt) {
       const desired = bot.role === "rusher" ? 1.7 : bot.role === "scout" ? 5 : 3.6;
       if (dist > desired) {
         const dx = (player.x - bot.x) / Math.max(dist, 0.001); const dz = (player.z - bot.z) / Math.max(dist, 0.001);
-        moveEntity(bot, dx * bot.type.speed * phasePower * dt, dz * bot.type.speed * phasePower * dt); moving = true;
+        moveEntity(bot, dx * bot.type.speed * speedScale * phasePower * dt, dz * bot.type.speed * speedScale * phasePower * dt); moving = true;
       } else {
-        const orbit = (bot.id % 2 ? 1 : -1) * bot.type.speed * 0.35 * dt;
+        const orbit = (bot.id % 2 ? 1 : -1) * bot.type.speed * speedScale * 0.35 * dt;
         moveEntity(bot, -(player.z - bot.z) / Math.max(dist, .01) * orbit, (player.x - bot.x) / Math.max(dist, .01) * orbit); moving = true;
       }
       bot.figure.rotation.y = Math.atan2(player.x - bot.x, player.z - bot.z);
       bot.shootTimer -= dt;
-      if (bot.shootTimer <= 0) { botShoot(bot, dist); bot.shootTimer = bot.type.cadence / phasePower * (0.75 + Math.random() * 0.45); }
+      if (bot.shootTimer <= 0) { botShoot(bot, dist); bot.shootTimer = bot.type.cadence / (phasePower * cadenceScale) * (0.75 + Math.random() * 0.45); }
     } else {
       bot.state = "patrol"; bot.patrolAngle += dt * 0.45;
       const home = state.arena.botSpawns[bot.id];
@@ -785,8 +801,10 @@ function botShoot(bot, dist) {
   const start = new THREE.Vector3(); bot.figure.userData.rig.muzzle.getWorldPosition(start);
   const target = camera.position.clone(); createTracer(start, target, bot.role === "boss" ? 0xff6b59 : 0xf4a654);
   const mercy = player.health < 30 ? 0.72 : 1;
-  const chance = clamp((bot.type.accuracy - dist * 0.045) * mercy, 0.2, 0.82);
-  if (Math.random() < chance) damagePlayer(Math.round(bot.type.damage * (0.82 + Math.random() * 0.36) * (bot.role === "boss" ? 1 + (bot.phase - 1) * 0.16 : 1)), bot);
+  const accuracyBonus = (state.challenge - 1) * 0.16;
+  const damageScale = clamp(1 + (state.challenge - 1) * 0.65, 0.95, 1.36);
+  const chance = clamp((bot.type.accuracy + accuracyBonus - dist * 0.045) * mercy, 0.2, 0.87);
+  if (Math.random() < chance) damagePlayer(Math.round(bot.type.damage * damageScale * (0.82 + Math.random() * 0.36) * (bot.role === "boss" ? 1 + (bot.phase - 1) * 0.16 : 1)), bot);
 }
 
 function updateEffects(dt) {
@@ -815,6 +833,7 @@ function finishRound(won, reason) {
   if (state.mode !== "playing") return;
   document.exitPointerLock?.(); setMode(won ? "won" : "lost"); playTone(won ? "win" : "lose");
   state.metrics.completed += 1; if (won) state.metrics.wins += 1; state.metrics.fpsTotal += state.fps; state.metrics.fpsSamples += 1; saveMetrics();
+  state.arenaRecords = recordArenaResult(state.arenaRecords, state.arenaIndex, won); saveArenaRecords();
   const finalScore = state.score + (won ? 250 + Math.ceil(state.timeLeft) * 3 : 0);
   if (finalScore > state.bestScore) { state.bestScore = finalScore; localStorage.setItem("tacticalArena.bestScore", String(finalScore)); }
   if (won && (!state.bestTime || state.elapsed < state.bestTime)) { state.bestTime = state.elapsed; localStorage.setItem("tacticalArena.fastestClear", String(state.bestTime)); }
@@ -825,11 +844,11 @@ function finishRound(won, reason) {
   ui.roundSummary.textContent = reason;
   ui.scoreboard.innerHTML = [
     ["Captain", captain().name], ["Arena", state.arena.name], ["Rivals", `${state.kills} / ${state.bots.length}`], ["Score", finalScore],
-    ["Clear time", `${state.elapsed.toFixed(1)}s`], ["Average FPS", state.fps]
+    ["Clear time", `${state.elapsed.toFixed(1)}s`], ["Challenge", `${state.challenge.toFixed(2)}x`], ["Average FPS", state.fps]
   ].map(([label, value]) => `<div>${label}<strong>${value}</strong></div>`).join("");
-  const completion = state.metrics.starts ? Math.round(state.metrics.completed / state.metrics.starts * 100) : 0;
-  const winRate = state.metrics.completed ? Math.round(state.metrics.wins / state.metrics.completed * 100) : 0;
-  ui.benchmarkSummary.textContent = `Playtest · ${completion}% completion · ${winRate}% wins · ${Math.round(state.metrics.fpsTotal / Math.max(1, state.metrics.fpsSamples))} average FPS`;
+  const arenaRecord = state.arenaRecords[state.arenaIndex];
+  const arenaWinRate = arenaRecord.attempts ? Math.round(arenaRecord.wins / arenaRecord.attempts * 100) : 0;
+  ui.benchmarkSummary.textContent = `Arena record ${arenaRecord.wins}-${arenaRecord.attempts - arenaRecord.wins} · ${arenaWinRate}% wins · target ${TARGET_WIN_RATE * 100}% · ${Math.round(state.metrics.fpsTotal / Math.max(1, state.metrics.fpsSamples))} average FPS`;
   ui.restartButton.textContent = won ? (state.nextArenaIndex === 0 ? "Restart League" : "Next Match") : "Retry Match";
   updateBestStats();
 }
@@ -949,6 +968,11 @@ function buildReport() {
     winRate: state.metrics.completed ? Math.round(state.metrics.wins / state.metrics.completed * 100) : 0,
     replayRate: state.metrics.starts ? Math.round(state.metrics.replays / state.metrics.starts * 100) : 0,
     averageFps: state.metrics.fpsSamples ? Math.round(state.metrics.fpsTotal / state.metrics.fpsSamples) : state.fps,
+    targetWinRate: TARGET_WIN_RATE,
+    arenas: ARENAS.map((arena, index) => ({
+      name: arena.name, ...state.arenaRecords[index], estimatedWinRate: Number(estimatedWinRate(state.arenaRecords[index]).toFixed(3)),
+      nextChallenge: challengeForArena(index, state.arenaRecords[index])
+    })),
     errors: state.errors, viewport: `${innerWidth}x${innerHeight}`, quality: state.quality, reducedMotion: state.reducedMotion
   }, null, 2);
 }
@@ -1080,6 +1104,7 @@ window.__TACTICAL_ARENA_DEBUG__ = {
     const boss = state.bots.find((bot) => bot.role === "boss");
     return {
       mode: state.mode, arena: state.arena.name, level: state.arenaIndex + 1, floors: state.arena.floors, fps: state.fps, errors: state.errors,
+      challenge: state.challenge, targetWinRate: TARGET_WIN_RATE, arenaRecord: state.arenaRecords[state.arenaIndex],
       objective: { type: state.arena.objective.type, progress: Number(state.objectiveProgress.toFixed(2)), goal: state.arena.objective.goal, complete: state.objectiveComplete },
       player: { x: Number(player.x.toFixed(2)), z: Number(player.z.toFixed(2)), floor: player.floor, y: Number(player.yOffset.toFixed(2)), grounded: player.grounded, health: player.health, captain: state.captainId },
       weapon: weapon().id, ammo: [...player.ammo], reserve: [...player.reserve], botsAlive: state.bots.filter((bot) => bot.alive).length,

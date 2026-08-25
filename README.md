@@ -2,7 +2,7 @@
 
 The Snap League is a compact Three.js browser arena shooter with articulated toy-like rivals, two weapons, six multi-floor campaign arenas, generated audio, radar, score persistence, and a complete three-minute match loop. It retains the launchable app name **Tactical Arena**.
 
-The campaign mixes elimination, collection, and hold-zone objectives across connected decks. Rifle, rusher, heavy, and scout bots have distinct silhouettes and combat behavior, and the three-floor Apex Foundry finale adds the shielded, multi-phase Atlas boss. Players choose temporary upgrades after their second and fourth eliminations, unlock weapon colors through high scores, and can copy a shareable score card after each round. An adaptive director adjusts bot pressure using the local win history.
+The campaign mixes elimination, collection, and hold-zone objectives across connected decks. Rifle, rusher, heavy, and scout bots have distinct silhouettes and combat behavior, and the three-floor Apex Foundry finale adds the shielded, multi-phase Atlas boss. Players choose temporary upgrades after their second and fourth eliminations, unlock weapon colors through high scores, and can copy a shareable score card after each round. A per-arena adaptive director targets a 20% win rate by tuning bounded bot reaction, movement, accuracy, and firing pressure from recent local results.
 
 After each round, the game can copy an anonymous local playtest report containing completion, win, replay, control-use, FPS, and error metrics. No data is transmitted by the game.
 
