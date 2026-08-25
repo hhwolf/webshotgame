@@ -79,8 +79,14 @@ let viewArms = [];
 let audioContext = null;
 
 const faceLoader = new THREE.TextureLoader();
-const faceTextures = CAPTAINS.map((item) => {
-  const texture = faceLoader.load(`${import.meta.env.BASE_URL}assets/faces/${item.id}.png`);
+const faceUrls = [
+  new URL("./assets/faces/bolt.png", import.meta.url).href,
+  new URL("./assets/faces/juno.png", import.meta.url).href,
+  new URL("./assets/faces/brick.png", import.meta.url).href,
+  new URL("./assets/faces/flick.png", import.meta.url).href
+];
+const faceTextures = faceUrls.map((url) => {
+  const texture = faceLoader.load(url);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 2;
   return texture;
@@ -921,7 +927,7 @@ function frame() {
 }
 
 function renderCaptainChoices() {
-  ui.captainChoices.innerHTML = CAPTAINS.map((item) => `<button class="captain-card${item.id === state.captainId ? " is-selected" : ""}" data-captain="${item.id}" style="--cap:${item.body};--cap-dark:${item.dark};--face:url('${import.meta.env.BASE_URL}assets/faces/${item.id}.png')"><i class="captain-avatar"></i><strong>${item.name}</strong><span>${item.role}</span></button>`).join("");
+  ui.captainChoices.innerHTML = CAPTAINS.map((item, index) => `<button class="captain-card${item.id === state.captainId ? " is-selected" : ""}" data-captain="${item.id}" style="--cap:${item.body};--cap-dark:${item.dark};--face:url('${faceUrls[index]}')"><i class="captain-avatar"></i><strong>${item.name}</strong><span>${item.role}</span></button>`).join("");
 }
 
 function selectCaptain(id) {
