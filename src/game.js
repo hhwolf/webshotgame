@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { ARENAS, BOT_TYPES, CAPTAINS, UPGRADES, WEAPONS } from "./data.js";
+import { movementVelocity } from "./movement.js";
 
 const CELL = 3.1;
 const DECK_HEIGHT = 5.2;
@@ -22,14 +23,12 @@ const ui = Object.fromEntries([
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 160);
 camera.rotation.order = "YXZ";
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.22;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = false;
 mount.appendChild(renderer.domElement);
 
 const clock = new THREE.Clock();
@@ -44,8 +43,8 @@ const hemi = new THREE.HemisphereLight(0xcaf3ff, 0x29404b, 2.35);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0c2, 4.2);
 sun.position.set(-14, 26, -9);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = false;
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -28;
 sun.shadow.camera.right = 28;
 sun.shadow.camera.top = 28;
@@ -56,13 +55,13 @@ const savedArenaIndex = Number.parseInt(localStorage.getItem("snapLeague.campaig
 const state = {
   mode: "menu", arenaIndex: Number.isInteger(savedArenaIndex) && savedArenaIndex >= 0 ? savedArenaIndex % ARENAS.length : 0,
   nextArenaIndex: null,
-  arena: ARENAS[0], keys: Object.create(null), pointerDown: false, dragX: 0, bots: [], props: [], effects: [],
+  arena: ARENAS[0], keys: Object.create(null), pointerDown: false, dragX: 0, bots: [], props: [], effects: [], deckGroups: [], liftMeshes: [],
   walls: [], score: 0, kills: 0, objectiveProgress: 0, objectiveComplete: false, timeLeft: ROUND_TIME, countdown: 0,
   elapsed: 0, lastResult: null, upgradeStops: new Set(), fps: 60, frameCount: 0, fpsTime: 0, errors: 0,
   muted: localStorage.getItem("tacticalArena.muted") === "true", quality: localStorage.getItem("snapLeague.quality") || "high",
   reducedMotion: localStorage.getItem("snapLeague.reducedMotion") === "true", captainId: localStorage.getItem("snapLeague.captain") || "bolt",
   bestScore: Number(localStorage.getItem("tacticalArena.bestScore") || 0), bestTime: Number(localStorage.getItem("tacticalArena.fastestClear") || 0),
-  audio: null, shootHeld: false, shake: 0, damageFlash: 0, hitFlash: 0, announcementTime: 0, floorFade: 0, matchStarts: 0,
+  audio: null, shootHeld: false, shake: 0, damageFlash: 0, hitFlash: 0, announcementTime: 0, floorFade: 0, matchStarts: 0, hudTimer: 0, radarTimer: 0,
   metrics: loadMetrics()
 };
 
@@ -78,6 +77,14 @@ let weaponRig = null;
 let muzzleFlash = null;
 let viewArms = [];
 let audioContext = null;
+
+const faceLoader = new THREE.TextureLoader();
+const faceTextures = CAPTAINS.map((item) => {
+  const texture = faceLoader.load(`${import.meta.env.BASE_URL}assets/faces/${item.id}.png`);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 2;
+  return texture;
+});
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function captain() { return CAPTAINS.find((item) => item.id === state.captainId) || CAPTAINS[0]; }
@@ -99,8 +106,8 @@ function loadMetrics() {
 
 function saveMetrics() { localStorage.setItem("snapLeague.metrics", JSON.stringify(state.metrics)); }
 
-function material(color, roughness = 0.68, metalness = 0.04, emissive = 0x000000) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity: emissive ? 0.55 : 0 });
+function material(color, _roughness = 0.68, _metalness = 0.04, emissive = 0x000000) {
+  return new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: emissive ? 0.55 : 0 });
 }
 
 function mesh(geometry, mat, parent, position = [0, 0, 0], rotation = [0, 0, 0]) {
@@ -186,7 +193,7 @@ function createLift(parent, lift, floor, accent) {
   const arrow = mesh(new THREE.ConeGeometry(0.22, 0.45, 3), glowMat, group, [0, 1.02, 0.62], [0, 0, Math.PI]);
   arrow.castShadow = false;
   group.userData = { type: "lift", floor, lift };
-  parent.add(group);
+  parent.add(group); state.liftMeshes.push(group);
   return group;
 }
 
@@ -283,7 +290,7 @@ function addStandardLandmarks(parent, baseY, floor) {
 function buildArena(index) {
   state.arenaIndex = ((index % ARENAS.length) + ARENAS.length) % ARENAS.length;
   state.arena = ARENAS[state.arenaIndex];
-  state.props = []; state.walls = []; state.bots = [];
+  state.props = []; state.walls = []; state.bots = []; state.deckGroups = []; state.liftMeshes = [];
   if (arenaRoot) scene.remove(arenaRoot);
   clearGroup(world); clearGroup(actorLayer); clearGroup(effectLayer);
   arenaRoot = new THREE.Group();
@@ -300,12 +307,15 @@ function buildArena(index) {
 
   for (let floor = 0; floor < state.arena.floors; floor += 1) {
     const baseY = floorY(floor);
-    mesh(new THREE.BoxGeometry(width, 0.45, depth), floorMat, arenaRoot, [0, baseY - 0.23, 0]);
+    const deckGroup = new THREE.Group();
+    deckGroup.userData.floor = floor; arenaRoot.add(deckGroup); state.deckGroups.push(deckGroup);
+    const deckFloor = mesh(new THREE.BoxGeometry(width, 0.45, depth), floorMat, deckGroup, [0, baseY - 0.23, 0]);
+    deckFloor.receiveShadow = true;
     if (floor < state.arena.floors - 1) {
-      const ceiling = mesh(new THREE.BoxGeometry(width, 0.22, depth), ceilingMat, arenaRoot, [0, baseY + 4.28, 0]);
+      const ceiling = mesh(new THREE.BoxGeometry(width, 0.22, depth), ceilingMat, deckGroup, [0, baseY + 4.28, 0]);
       ceiling.receiveShadow = true;
       for (let lightIndex = -2; lightIndex <= 2; lightIndex += 1) {
-        mesh(new THREE.BoxGeometry(3.8, 0.08, 0.22), material(0xffeab0, 0.35, 0, 0xffd978), arenaRoot, [lightIndex * 6.2, baseY + 4.13, 0]);
+        mesh(new THREE.BoxGeometry(3.8, 0.08, 0.22), material(0xffeab0, 0.35, 0, 0xffd978), deckGroup, [lightIndex * 6.2, baseY + 4.13, 0]);
       }
     }
     const wallBuckets = state.arena.wallColors.map(() => []);
@@ -320,22 +330,29 @@ function buildArena(index) {
       const matrix = new THREE.Matrix4();
       positions.forEach((position, positionIndex) => { matrix.makeTranslation(...position); walls.setMatrixAt(positionIndex, matrix); });
       walls.instanceMatrix.needsUpdate = true; walls.castShadow = true; walls.receiveShadow = true; walls.userData.wall = true;
-      arenaRoot.add(walls); state.walls.push(walls);
+      deckGroup.add(walls); state.walls.push(walls);
     });
     const deckLight = new THREE.PointLight(0xffe8b0, floor < state.arena.floors - 1 ? 7 : 2.5, 28, 1.35);
-    deckLight.position.set(0, baseY + 3.75, 0); deckLight.castShadow = false; arenaRoot.add(deckLight);
-    state.arena.lifts.forEach((lift) => createLift(arenaRoot, lift, floor, state.arena.accent));
-    if (state.arena.name === "Cargo Court") addCargoLandmark(arenaRoot, baseY, floor);
-    else if (state.arena.name === "Metro Market") addMarketLandmark(arenaRoot, baseY, floor);
-    else if (state.arena.name === "Apex Foundry") addFoundryLandmark(arenaRoot, baseY, floor);
-    else addStandardLandmarks(arenaRoot, baseY, floor);
+    deckLight.position.set(0, baseY + 3.75, 0); deckLight.castShadow = false; deckGroup.add(deckLight);
+    state.arena.lifts.forEach((lift) => createLift(deckGroup, lift, floor, state.arena.accent));
+    if (state.arena.name === "Cargo Court") addCargoLandmark(deckGroup, baseY, floor);
+    else if (state.arena.name === "Metro Market") addMarketLandmark(deckGroup, baseY, floor);
+    else if (state.arena.name === "Apex Foundry") addFoundryLandmark(deckGroup, baseY, floor);
+    else addStandardLandmarks(deckGroup, baseY, floor);
   }
 
   state.arena.health.forEach((item) => createHealthKit(arenaRoot, item));
   state.arena.pickups?.forEach((item, index2) => createObjective(arenaRoot, item, index2));
   if (state.arena.objective.type === "hold") createHoldZone(arenaRoot, state.arena.objective);
   state.arena.botSpawns.forEach((spawn, botIndex) => state.bots.push(createBot(botIndex, spawn)));
+  syncFloorVisibility();
   createWeaponRig();
+}
+
+function syncFloorVisibility() {
+  state.deckGroups.forEach((group, floor) => { group.visible = floor === player.floor; });
+  state.props.forEach((prop) => { prop.visible = prop.userData.active && prop.userData.floor === player.floor; });
+  state.bots.forEach((bot) => { bot.figure.visible = bot.alive && bot.floor === player.floor; });
 }
 
 function limb(parent, radius, length, color, x, y, z, rotationZ = 0) {
@@ -345,7 +362,7 @@ function limb(parent, radius, length, color, x, y, z, rotationZ = 0) {
   return { pivot, part };
 }
 
-function createFigure(type, palette, isBoss = false) {
+function createFigure(type, palette, isBoss = false, faceIndex = 0) {
   const root = new THREE.Group();
   const scale = type.scale;
   root.scale.setScalar(scale);
@@ -354,7 +371,24 @@ function createFigure(type, palette, isBoss = false) {
   const head = mesh(new THREE.SphereGeometry(isBoss ? 0.5 : 0.39, 18, 12), material(palette.skin, 0.68), root, [0, 2.18, 0]);
   head.scale.y = 1.05;
   mesh(new THREE.SphereGeometry(isBoss ? 0.52 : 0.41, 16, 8, 0, TAU, 0, Math.PI / 2), material(palette.dark, 0.45), root, [0, 2.26, 0]);
-  const visor = mesh(new THREE.BoxGeometry(isBoss ? 0.85 : 0.65, 0.18, 0.16), material(0x173340, 0.22, 0.5, palette.accent), root, [0, 2.2, -0.36]);
+  const face = mesh(
+    new THREE.PlaneGeometry(isBoss ? 0.78 : 0.59, isBoss ? 0.78 : 0.59),
+    new THREE.MeshBasicMaterial({ map: faceTextures[faceIndex % faceTextures.length], transparent: true, alphaTest: 0.08, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }),
+    root, [0, 2.13, isBoss ? 0.56 : 0.43]
+  );
+  face.castShadow = false; face.receiveShadow = false; face.renderOrder = 3;
+  const visor = mesh(new THREE.BoxGeometry(isBoss ? 0.9 : 0.68, 0.12, 0.14), material(0x173340, 0.22, 0.5, palette.accent), root, [0, isBoss ? 2.52 : 2.45, isBoss ? 0.34 : 0.29]);
+  if (faceIndex % 4 === 0) {
+    mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.12, 10), material(palette.accent, 0.35), root, [-0.41, 2.2, 0], [0, 0, Math.PI / 2]);
+    mesh(new THREE.BoxGeometry(0.04, 0.36, 0.04), material(palette.accent, 0.35), root, [-0.47, 2.48, 0]);
+  } else if (faceIndex % 4 === 1) {
+    mesh(new THREE.BoxGeometry(0.14, 0.42, 0.28), material(palette.accent, 0.35), root, [-0.4, 2.22, 0]);
+    mesh(new THREE.BoxGeometry(0.14, 0.42, 0.28), material(palette.accent, 0.35), root, [0.4, 2.22, 0]);
+  } else if (faceIndex % 4 === 2) {
+    mesh(new THREE.BoxGeometry(0.72, 0.13, 0.15), material(palette.accent, 0.4), root, [0, 1.95, 0.29]);
+  } else {
+    mesh(new THREE.BoxGeometry(0.5, 0.08, 0.34), material(palette.accent, 0.35), root, [0.17, 2.48, 0.18], [0, 0, -0.12]);
+  }
   const leftArm = limb(root, isBoss ? 0.18 : 0.14, isBoss ? 0.72 : 0.58, palette.body, -0.55, 1.68, 0, 0.12);
   const rightArm = limb(root, isBoss ? 0.18 : 0.14, isBoss ? 0.72 : 0.58, palette.body, 0.55, 1.68, 0, -0.7);
   const leftShoulder = mesh(new THREE.BoxGeometry(isBoss ? 0.48 : 0.34, 0.3, 0.58), material(palette.accent, 0.4, 0.12), root, [-0.58, 1.72, 0]);
@@ -380,7 +414,7 @@ function createBot(index, spawn) {
     { body: type.color, dark: 0x46344d, accent: 0x5be1b0, skin: 0xb87557 },
     { body: type.color, dark: 0x263e4e, accent: 0x55d6e8, skin: 0xe5a376 }
   ];
-  const figure = createFigure(type, palettes[index % palettes.length], isBoss);
+  const figure = createFigure(type, palettes[index % palettes.length], isBoss, isBoss ? 2 : index % faceTextures.length);
   actorLayer.add(figure);
   const bot = {
     id: index, name: isBoss ? "Atlas" : ["Rook", "Vex", "Pico", "Dash", "Mako"][index], role, type, figure,
@@ -458,7 +492,7 @@ function resetRound() {
   state.score = 0; state.kills = 0; state.objectiveProgress = 0; state.objectiveComplete = false;
   state.timeLeft = ROUND_TIME; state.elapsed = 0; state.countdown = 2.6; state.upgradeStops = new Set(); state.effects = [];
   state.shake = 0; state.damageFlash = 0; state.hitFlash = 0; state.floorFade = 0;
-  createWeaponRig(); updateCamera(); updateHud();
+  state.hudTimer = 0; state.radarTimer = 0; syncFloorVisibility(); createWeaponRig(); updateCamera(); updateHud(); drawRadar();
 }
 
 function startRound() {
@@ -496,7 +530,7 @@ function useLift() {
   player.floor = (player.floor + 1) % state.arena.floors;
   player.liftCooldown = 0.75; player.vx = 0; player.vz = 0; state.floorFade = 0.7;
   announce(`Deck ${player.floor + 1}`, state.arena.name, 0.85); playTone("lift");
-  updateCamera(); updateHud(); return true;
+  syncFloorVisibility(); updateCamera(); updateHud(); drawRadar(); return true;
 }
 
 function jump() {
@@ -645,13 +679,9 @@ function updatePlayer(dt) {
   }
   const forward = (state.keys.KeyW ? 1 : 0) - (state.keys.KeyS ? 1 : 0);
   const strafe = (state.keys.KeyD ? 1 : 0) - (state.keys.KeyA ? 1 : 0);
-  const length = Math.hypot(forward, strafe) || 1;
   const speed = player.speed + player.speedBonus;
-  const targetVx = (-Math.sin(player.yaw) * forward + Math.cos(player.yaw) * strafe) / length * speed;
-  const targetVz = (-Math.cos(player.yaw) * forward - Math.sin(player.yaw) * strafe) / length * speed;
-  const response = 1 - Math.exp(-15 * dt);
-  player.vx += (targetVx - player.vx) * response; player.vz += (targetVz - player.vz) * response;
-  if (!forward && !strafe) { player.vx *= Math.exp(-9 * dt); player.vz *= Math.exp(-9 * dt); }
+  const velocity = movementVelocity(player.yaw, forward, strafe, speed);
+  player.vx = velocity.x; player.vz = velocity.z;
   moveEntity(player, player.vx * dt, player.vz * dt);
   if (Math.hypot(player.vx, player.vz) > 0.2 && player.grounded) player.bob += dt * 11;
   if (state.shootHeld && weapon().auto) shoot();
@@ -868,27 +898,30 @@ function update(dt) {
     state.timeLeft -= dt; state.elapsed += dt;
     if (state.timeLeft <= 0) { finishRound(false, "The league clock expired."); return; }
   }
-  updatePlayer(dt); if (state.countdown <= 0) updateBots(dt); updateEffects(dt); animateEnvironment(dt); updateHud();
+  updatePlayer(dt); if (state.countdown <= 0) updateBots(dt); updateEffects(dt); animateEnvironment(dt);
+  state.hudTimer -= dt; state.radarTimer -= dt;
+  if (state.hudTimer <= 0) { updateHud(); state.hudTimer = 0.05; }
+  if (state.radarTimer <= 0) { drawRadar(); state.radarTimer = 0.1; }
 }
 
 function animateEnvironment(dt) {
   const time = performance.now() * 0.001;
   state.props.forEach((prop) => { if (prop.userData.type === "zone") prop.rotation.y += dt * 0.2; });
-  arenaRoot?.traverse((item) => { if (item.userData?.type === "lift") item.rotation.y = Math.sin(time * 0.7 + item.userData.floor) * 0.015; });
+  state.liftMeshes.forEach((item) => { item.rotation.y = Math.sin(time * 0.7 + item.userData.floor) * 0.015; });
 }
 
 function render() {
   const baseX = camera.position.x, baseY = camera.position.y;
   if (state.shake > 0 && state.mode === "playing") { camera.position.x += (Math.random() - 0.5) * state.shake; camera.position.y += (Math.random() - 0.5) * state.shake; }
-  renderer.render(scene, camera); camera.position.x = baseX; camera.position.y = baseY; drawRadar();
+  renderer.render(scene, camera); camera.position.x = baseX; camera.position.y = baseY;
 }
 
 function frame() {
-  const dt = Math.min(0.05, clock.getDelta()); update(dt); render(); requestAnimationFrame(frame);
+  const dt = Math.min(0.05, clock.getDelta()); update(dt); render();
 }
 
 function renderCaptainChoices() {
-  ui.captainChoices.innerHTML = CAPTAINS.map((item) => `<button class="captain-card${item.id === state.captainId ? " is-selected" : ""}" data-captain="${item.id}" style="--cap:${item.body};--cap-dark:${item.dark}"><i class="captain-avatar"></i><strong>${item.name}</strong><span>${item.role}</span></button>`).join("");
+  ui.captainChoices.innerHTML = CAPTAINS.map((item) => `<button class="captain-card${item.id === state.captainId ? " is-selected" : ""}" data-captain="${item.id}" style="--cap:${item.body};--cap-dark:${item.dark};--face:url('${import.meta.env.BASE_URL}assets/faces/${item.id}.png')"><i class="captain-avatar"></i><strong>${item.name}</strong><span>${item.role}</span></button>`).join("");
 }
 
 function selectCaptain(id) {
@@ -990,10 +1023,16 @@ ui.muteButton.addEventListener("click", () => { state.muted = !state.muted; loca
 ui.reducedMotion.checked = state.reducedMotion;
 ui.reducedMotion.addEventListener("change", () => { state.reducedMotion = ui.reducedMotion.checked; localStorage.setItem("snapLeague.reducedMotion", String(state.reducedMotion)); });
 ui.qualitySelect.value = state.quality;
+applyQuality();
 ui.qualitySelect.addEventListener("change", () => {
   state.quality = ui.qualitySelect.value; localStorage.setItem("snapLeague.quality", state.quality);
-  renderer.setPixelRatio(state.quality === "high" ? Math.min(devicePixelRatio, 1.75) : 1); renderer.shadowMap.enabled = state.quality === "high"; renderer.setSize(innerWidth, innerHeight);
+  applyQuality();
 });
+
+function applyQuality() {
+  const ratio = state.quality === "high" ? Math.min(devicePixelRatio, 1) : Math.min(devicePixelRatio, 0.75);
+  renderer.setPixelRatio(Math.max(0.65, ratio)); renderer.shadowMap.enabled = false; renderer.setSize(innerWidth, innerHeight);
+}
 ui.copyReportButton.addEventListener("click", async () => { await copyText(buildReport()); ui.copyReportButton.textContent = "Report Copied"; });
 ui.copyScoreButton.addEventListener("click", async () => {
   if (!state.lastResult) return; const item = state.lastResult;
@@ -1020,9 +1059,9 @@ function arenaValidation() {
 window.__TACTICAL_ARENA_DEBUG__ = {
   startRound, pauseGame, resumeGame, shoot, reload, switchWeapon, jump, useLift, chooseUpgrade, selectCaptain,
   setArena(index) { state.arenaIndex = clamp(Math.floor(Number(index) || 0), 0, ARENAS.length - 1); state.nextArenaIndex = null; startRound(); },
-  setFloor(floor) { player.floor = clamp(Math.floor(Number(floor) || 0), 0, state.arena.floors - 1); updateCamera(); updateHud(); },
+  setFloor(floor) { player.floor = clamp(Math.floor(Number(floor) || 0), 0, state.arena.floors - 1); syncFloorVisibility(); updateCamera(); updateHud(); drawRadar(); },
   setPlayerPosition(x, z, yaw = player.yaw) { if (!isWall(x, z)) { player.x = x; player.z = z; player.yaw = yaw; updateCamera(); } },
-  setBotPosition(index, x, z, floor = null) { const bot = state.bots[index]; if (bot && !isWall(x, z)) { bot.x = x; bot.z = z; if (floor !== null) bot.floor = clamp(Number(floor), 0, state.arena.floors - 1); positionBot(bot); } },
+  setBotPosition(index, x, z, floor = null) { const bot = state.bots[index]; if (bot && !isWall(x, z)) { bot.x = x; bot.z = z; if (floor !== null) bot.floor = clamp(Number(floor), 0, state.arena.floors - 1); positionBot(bot); syncFloorVisibility(); } },
   readyCombat() { state.countdown = 0; player.cooldown = 0; player.reloading = 0; player.health = player.maxHealth; state.announcementTime = 0; ui.announcement.classList.add("hidden"); updateHud(); },
   damagePlayer,
   hitBot(index, amount) { const bot = state.bots[index]; if (bot) damageBot(bot, Number(amount) || 0); },

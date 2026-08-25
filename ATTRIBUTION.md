@@ -1,5 +1,5 @@
 # Asset Attribution
 
-Tactical Arena: The Snap League currently uses no third-party visual or audio assets.
+Tactical Arena: The Snap League uses no third-party game artwork or audio assets.
 
-All characters, arenas, props, textures, effects, and Web Audio cues are generated procedurally by the project source. Three.js is used under its MIT license.
+Characters, arenas, props, effects, and Web Audio cues are original to this project. The four captain face decals were generated specifically for the game with OpenAI GPT Image 2, then chroma-keyed and optimized locally. Three.js is used under its MIT license.
