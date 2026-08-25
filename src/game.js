@@ -52,6 +52,9 @@ sun.shadow.camera.right = 28;
 sun.shadow.camera.top = 28;
 sun.shadow.camera.bottom = -28;
 scene.add(sun);
+const rim = new THREE.DirectionalLight(0x8cecff, 1.15);
+rim.position.set(11, 9, 14);
+scene.add(rim);
 
 const savedArenaIndex = Number.parseInt(localStorage.getItem("snapLeague.campaign") || "0", 10);
 const state = {
@@ -373,7 +376,10 @@ function buildArena(index) {
 function syncFloorVisibility() {
   state.deckGroups.forEach((group, floor) => { group.visible = floor === player.floor; });
   state.props.forEach((prop) => { prop.visible = prop.userData.active && prop.userData.floor === player.floor; });
-  state.bots.forEach((bot) => { bot.figure.visible = bot.alive && bot.floor === player.floor; });
+  state.bots.forEach((bot) => {
+    const visible = bot.alive && bot.floor === player.floor;
+    bot.figure.visible = visible; bot.shadow.visible = visible;
+  });
 }
 
 function addCartoonFace(root, profile, palette, faceIndex, isBoss) {
@@ -386,6 +392,17 @@ function addCartoonFace(root, profile, palette, faceIndex, isBoss) {
   head.scale.set(profile.headWidth, 1.04, 0.92);
   const hair = mesh(new THREE.SphereGeometry(radius * 1.025, 14, 8, 0, TAU, 0, Math.PI / 2), dark, faceRoot, [0, 0.035, -0.005]);
   hair.scale.set(profile.headWidth, 1.04, 0.94);
+  if (faceIndex % 4 === 0) {
+    [-1, 0, 1].forEach((offset) => mesh(new THREE.ConeGeometry(radius * 0.13, radius * (0.34 + Math.abs(offset) * -0.05), 5), dark, faceRoot,
+      [offset * radius * 0.24, radius * 0.84 - Math.abs(offset) * radius * 0.05, 0.02], [0, 0, offset * -0.12]));
+  } else if (faceIndex % 4 === 1) {
+    [-1, 1].forEach((side) => mesh(new THREE.SphereGeometry(radius * 0.2, 9, 7), dark, faceRoot, [side * radius * 0.68, radius * 0.58, -radius * 0.08]));
+  } else if (faceIndex % 4 === 2) {
+    mesh(new THREE.BoxGeometry(radius * 1.2, radius * 0.22, radius * 0.72), dark, faceRoot, [0, radius * 0.73, -radius * 0.04]);
+  } else {
+    [-1, 0, 1].forEach((offset) => mesh(new THREE.SphereGeometry(radius * (0.2 - offset * 0.02), 9, 7), dark, faceRoot,
+      [offset * radius * 0.24 + radius * 0.13, radius * (0.7 - offset * 0.1), radius * 0.18]));
+  }
 
   const eyeY = 0.035;
   const eyeZ = radius * 0.84;
@@ -503,8 +520,14 @@ function createBot(index, spawn) {
   ];
   const figure = createFigure(role, type, palettes[index % palettes.length], isBoss, isBoss ? 2 : index % faceUrls.length);
   actorLayer.add(figure);
+  const shadow = mesh(
+    new THREE.CircleGeometry(isBoss ? 0.86 : 0.48 + type.scale * 0.08, 18),
+    new THREE.MeshBasicMaterial({ color: 0x0a2530, transparent: true, opacity: isBoss ? 0.3 : 0.22, depthWrite: false }),
+    actorLayer, [0, 0, 0], [-Math.PI / 2, 0, 0]
+  );
+  shadow.castShadow = false; shadow.receiveShadow = false; shadow.renderOrder = 1;
   const bot = {
-    id: index, name: isBoss ? "Atlas" : ["Rook", "Vex", "Pico", "Dash", "Mako"][index], role, type, figure,
+    id: index, name: isBoss ? "Atlas" : ["Rook", "Vex", "Pico", "Dash", "Mako"][index], role, type, figure, shadow,
     x: spawn.x, z: spawn.z, floor, hp: type.hp, maxHp: type.hp, shield: type.shield || 0, maxShield: type.shield || 0,
     alive: true, death: 0, phase: 1, state: "patrol", target: { x: spawn.x, z: spawn.z }, patrolAngle: index * 1.2,
     shootTimer: (0.6 + Math.random() * 0.65) / (1 + (state.challenge - 1) * 0.8),
@@ -521,6 +544,7 @@ function createBot(index, spawn) {
 
 function positionBot(bot) {
   bot.figure.position.set(toWorldX(bot.x), floorY(bot.floor), toWorldZ(bot.z));
+  bot.shadow.position.set(toWorldX(bot.x), floorY(bot.floor) + 0.012, toWorldZ(bot.z));
 }
 
 function createWeaponRig() {
@@ -829,7 +853,9 @@ function updateBots(dt) {
       bot.figure.scale.set(baseScale * (1 + fall * 0.08), baseScale * Math.max(0.5, 1 - fall * 0.45), baseScale * (1 + fall * 0.08));
       bot.figure.rotation.z = (bot.id % 2 ? -1 : 1) * Math.min(1, fall * 1.35) * 1.25;
       bot.figure.rotation.x = -Math.min(1, fall * 1.6) * 0.28;
-      if (bot.death <= 0) bot.figure.visible = false;
+      bot.shadow.material.opacity = (bot.role === "boss" ? 0.3 : 0.22) * bot.death;
+      bot.shadow.scale.setScalar(1 + fall * 0.35);
+      if (bot.death <= 0) { bot.figure.visible = false; bot.shadow.visible = false; }
       continue;
     }
     const sameFloor = bot.floor === player.floor;
@@ -863,6 +889,8 @@ function updateBots(dt) {
     const stride = moving ? Math.sin(bot.anim) * profile.gait : 0;
     const aiming = sees && state.countdown <= 0;
     const baseScale = bot.type.scale;
+    bot.shadow.material.opacity = bot.role === "boss" ? 0.3 : 0.22;
+    bot.shadow.scale.setScalar(1 - Math.abs(stride) * 0.08);
     bot.figure.scale.set(baseScale * (1 + hit * 0.06), baseScale * (1 - hit * 0.08), baseScale * (1 + hit * 0.06));
     bot.figure.rotation.z = (bot.id % 2 ? -1 : 1) * hit * 0.07;
     bot.figure.rotation.x = 0;
