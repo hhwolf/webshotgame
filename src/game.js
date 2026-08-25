@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { characterProfile } from "./character-design.js";
 import { ARENAS, BOT_TYPES, CAPTAINS, UPGRADES, WEAPONS } from "./data.js";
 import { challengeForArena, estimatedWinRate, normalizeArenaRecords, recordArenaResult, TARGET_WIN_RATE } from "./difficulty.js";
 import { movementVelocity } from "./movement.js";
@@ -79,19 +80,18 @@ let muzzleFlash = null;
 let viewArms = [];
 let audioContext = null;
 
-const faceLoader = new THREE.TextureLoader();
 const faceUrls = [
   new URL("./assets/faces/bolt.png", import.meta.url).href,
   new URL("./assets/faces/juno.png", import.meta.url).href,
   new URL("./assets/faces/brick.png", import.meta.url).href,
   new URL("./assets/faces/flick.png", import.meta.url).href
 ];
-const faceTextures = faceUrls.map((url) => {
-  const texture = faceLoader.load(url);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 2;
-  return texture;
-});
+const toonRamp = new THREE.DataTexture(new Uint8Array([
+  86, 100, 112, 255,
+  178, 188, 194, 255,
+  255, 255, 255, 255
+]), 3, 1, THREE.RGBAFormat);
+toonRamp.minFilter = THREE.NearestFilter; toonRamp.magFilter = THREE.NearestFilter; toonRamp.needsUpdate = true;
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function captain() { return CAPTAINS.find((item) => item.id === state.captainId) || CAPTAINS[0]; }
@@ -125,6 +125,10 @@ function saveArenaRecords() { localStorage.setItem("snapLeague.arenaResults", JS
 
 function material(color, _roughness = 0.68, _metalness = 0.04, emissive = 0x000000) {
   return new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: emissive ? 0.55 : 0 });
+}
+
+function characterMaterial(color, emissive = 0x000000) {
+  return new THREE.MeshToonMaterial({ color, gradientMap: toonRamp, emissive, emissiveIntensity: emissive ? 0.45 : 0 });
 }
 
 function mesh(geometry, mat, parent, position = [0, 0, 0], rotation = [0, 0, 0]) {
@@ -372,52 +376,104 @@ function syncFloorVisibility() {
   state.bots.forEach((bot) => { bot.figure.visible = bot.alive && bot.floor === player.floor; });
 }
 
-function limb(parent, radius, length, color, x, y, z, rotationZ = 0) {
+function limb(parent, radius, length, color, x, y, z, rotationZ = 0, toon = false) {
   const pivot = new THREE.Group();
   pivot.position.set(x, y, z); pivot.rotation.z = rotationZ; parent.add(pivot);
-  const part = mesh(new THREE.CapsuleGeometry(radius, length, 5, 8), material(color, 0.58), pivot, [0, -length * 0.45, 0]);
+  const part = mesh(new THREE.CapsuleGeometry(radius, length, 4, 8), toon ? characterMaterial(color) : material(color, 0.58), pivot, [0, -length * 0.45, 0]);
   return { pivot, part };
 }
 
-function createFigure(type, palette, isBoss = false, faceIndex = 0) {
+function addCartoonFace(root, profile, palette, faceIndex, isBoss) {
+  const radius = profile.headRadius;
+  const centerY = 2.17;
+  const skin = characterMaterial(palette.skin);
+  const dark = characterMaterial(palette.dark);
+  const white = characterMaterial(0xfffbeb, 0x24211e);
+  const head = mesh(new THREE.SphereGeometry(radius, 16, 12), skin, root, [0, centerY, 0]);
+  head.scale.set(profile.headWidth, 1.04, 0.92);
+  const hair = mesh(new THREE.SphereGeometry(radius * 1.025, 14, 8, 0, TAU, 0, Math.PI / 2), dark, root, [0, centerY + 0.035, -0.005]);
+  hair.scale.set(profile.headWidth, 1.04, 0.94);
+
+  const eyeY = centerY + 0.035;
+  const eyeZ = radius * 0.84;
+  [-1, 1].forEach((side) => {
+    const eye = mesh(new THREE.SphereGeometry(radius * 0.105, 10, 7), white, root, [side * radius * 0.34, eyeY, eyeZ]);
+    eye.scale.x = 1.18;
+    mesh(new THREE.SphereGeometry(radius * 0.05, 8, 6), characterMaterial(faceIndex % 2 ? 0x173f5a : 0x174f43), root, [side * radius * 0.34, eyeY, eyeZ + radius * 0.09]);
+    mesh(new THREE.BoxGeometry(radius * 0.28, radius * 0.055, radius * 0.07), dark, root,
+      [side * radius * 0.32, eyeY + radius * 0.22, eyeZ + radius * 0.035], [0, 0, side * (faceIndex % 2 ? -0.11 : 0.08)]);
+  });
+  mesh(new THREE.ConeGeometry(radius * 0.085, radius * 0.24, 8), skin, root,
+    [0, centerY - radius * 0.06, eyeZ + radius * 0.05], [Math.PI / 2, 0, 0]);
+  const smile = mesh(new THREE.TorusGeometry(radius * 0.13, radius * 0.025, 5, 10, Math.PI), dark, root,
+    [0, centerY - radius * 0.29, eyeZ + radius * 0.06], [0, 0, Math.PI]);
+  smile.scale.y = faceIndex % 3 === 2 ? 0.55 : 0.8;
+  [-1, 1].forEach((side) => mesh(new THREE.SphereGeometry(radius * 0.16, 9, 7), skin, root, [side * radius * profile.headWidth, centerY, 0]));
+
+  const visor = mesh(new THREE.BoxGeometry(radius * (isBoss ? 1.5 : 1.15), radius * 0.12, radius * 0.16), characterMaterial(palette.accent, palette.accent), root,
+    [0, centerY + radius * 0.68, radius * 0.35]);
+  return { head, hair, visor };
+}
+
+function addRoleGear(root, role, profile, palette) {
+  const accent = characterMaterial(palette.accent, palette.accent);
+  const dark = characterMaterial(palette.dark);
+  if (role === "rusher") {
+    mesh(new THREE.TorusGeometry(0.34, 0.075, 7, 16), accent, root, [0, 1.78, 0], [Math.PI / 2, 0, 0]);
+    [-1, 1].forEach((side) => mesh(new THREE.ConeGeometry(0.12, 0.46, 4), accent, root, [side * 0.35, 1.3, -0.25], [Math.PI / 2, 0, side * 0.28]));
+  } else if (role === "heavy") {
+    mesh(new THREE.BoxGeometry(0.88, 0.52, 0.22), dark, root, [0, 1.38, -0.45]);
+    mesh(new THREE.BoxGeometry(0.48, 0.48, 0.12), accent, root, [0, 1.45, 0.52], [0, 0, Math.PI / 4]);
+  } else if (role === "scout") {
+    mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.1, 12), dark, root, [0, 2.48, 0]);
+    mesh(new THREE.BoxGeometry(0.42, 0.06, 0.22), accent, root, [0, 2.46, 0.31]);
+    mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8), accent, root, [-0.28, 2.47, -0.08], [0, 0, -0.2]);
+  } else if (role === "boss") {
+    [-1, 0, 1].forEach((offset) => mesh(new THREE.ConeGeometry(0.12, 0.38 + Math.abs(offset) * -0.08, 5), accent, root, [offset * 0.24, 2.7 - Math.abs(offset) * 0.04, -0.05]));
+    mesh(new THREE.TorusGeometry(0.51, 0.06, 8, 20), accent, root, [0, 1.38, 0.48]);
+  } else {
+    mesh(new THREE.BoxGeometry(0.16, 0.34, 0.14), accent, root, [-profile.shoulderX - 0.03, 2.04, 0]);
+    mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 6), accent, root, [-profile.shoulderX - 0.03, 2.31, 0]);
+  }
+}
+
+function createFigure(role, type, palette, isBoss = false, faceIndex = 0) {
   const root = new THREE.Group();
+  const profile = characterProfile(role);
   const scale = type.scale;
   root.scale.setScalar(scale);
-  const torso = mesh(new THREE.BoxGeometry(isBoss ? 1.15 : 0.84, isBoss ? 1.18 : 0.92, isBoss ? 0.55 : 0.45), material(palette.body, 0.52), root, [0, 1.35, 0]);
-  const vest = mesh(new THREE.BoxGeometry(isBoss ? 1.2 : 0.88, 0.48, isBoss ? 0.59 : 0.49), material(palette.dark, 0.45, 0.08), root, [0, 1.43, -0.02]);
-  const head = mesh(new THREE.SphereGeometry(isBoss ? 0.5 : 0.39, 18, 12), material(palette.skin, 0.68), root, [0, 2.18, 0]);
-  head.scale.y = 1.05;
-  mesh(new THREE.SphereGeometry(isBoss ? 0.52 : 0.41, 16, 8, 0, TAU, 0, Math.PI / 2), material(palette.dark, 0.45), root, [0, 2.26, 0]);
-  const face = mesh(
-    new THREE.PlaneGeometry(isBoss ? 0.78 : 0.59, isBoss ? 0.78 : 0.59),
-    new THREE.MeshBasicMaterial({ map: faceTextures[faceIndex % faceTextures.length], transparent: true, alphaTest: 0.08, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }),
-    root, [0, 2.13, isBoss ? 0.56 : 0.43]
-  );
-  face.castShadow = false; face.receiveShadow = false; face.renderOrder = 3;
-  const visor = mesh(new THREE.BoxGeometry(isBoss ? 0.9 : 0.68, 0.12, 0.14), material(0x173340, 0.22, 0.5, palette.accent), root, [0, isBoss ? 2.52 : 2.45, isBoss ? 0.34 : 0.29]);
-  if (faceIndex % 4 === 0) {
-    mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.12, 10), material(palette.accent, 0.35), root, [-0.41, 2.2, 0], [0, 0, Math.PI / 2]);
-    mesh(new THREE.BoxGeometry(0.04, 0.36, 0.04), material(palette.accent, 0.35), root, [-0.47, 2.48, 0]);
-  } else if (faceIndex % 4 === 1) {
-    mesh(new THREE.BoxGeometry(0.14, 0.42, 0.28), material(palette.accent, 0.35), root, [-0.4, 2.22, 0]);
-    mesh(new THREE.BoxGeometry(0.14, 0.42, 0.28), material(palette.accent, 0.35), root, [0.4, 2.22, 0]);
-  } else if (faceIndex % 4 === 2) {
-    mesh(new THREE.BoxGeometry(0.72, 0.13, 0.15), material(palette.accent, 0.4), root, [0, 1.95, 0.29]);
-  } else {
-    mesh(new THREE.BoxGeometry(0.5, 0.08, 0.34), material(palette.accent, 0.35), root, [0.17, 2.48, 0.18], [0, 0, -0.12]);
-  }
-  const leftArm = limb(root, isBoss ? 0.18 : 0.14, isBoss ? 0.72 : 0.58, palette.body, -0.55, 1.68, 0, 0.12);
-  const rightArm = limb(root, isBoss ? 0.18 : 0.14, isBoss ? 0.72 : 0.58, palette.body, 0.55, 1.68, 0, -0.7);
-  const leftShoulder = mesh(new THREE.BoxGeometry(isBoss ? 0.48 : 0.34, 0.3, 0.58), material(palette.accent, 0.4, 0.12), root, [-0.58, 1.72, 0]);
-  const rightShoulder = mesh(new THREE.BoxGeometry(isBoss ? 0.48 : 0.34, 0.3, 0.58), material(palette.accent, 0.4, 0.12), root, [0.58, 1.72, 0]);
-  const leftLeg = limb(root, isBoss ? 0.2 : 0.16, isBoss ? 0.78 : 0.64, palette.dark, -0.25, 0.92, 0, 0);
-  const rightLeg = limb(root, isBoss ? 0.2 : 0.16, isBoss ? 0.78 : 0.64, palette.dark, 0.25, 0.92, 0, 0);
+  const torso = mesh(new THREE.CapsuleGeometry(profile.chestRadius, profile.chestLength, 5, 10), characterMaterial(palette.body), root, [0, 1.38, 0]);
+  torso.scale.set(profile.chestWidth, 1, profile.chestDepth);
+  const hips = mesh(new THREE.CapsuleGeometry(profile.chestRadius * 0.72, 0.14, 4, 8), characterMaterial(palette.dark), root, [0, 0.94, 0]);
+  hips.rotation.z = Math.PI / 2; hips.scale.z = profile.chestDepth;
+  const vest = mesh(new THREE.BoxGeometry(profile.chestRadius * profile.chestWidth * 1.45, 0.42, profile.chestRadius * profile.chestDepth * 1.78), characterMaterial(palette.dark), root, [0, 1.43, 0.04]);
+  mesh(new THREE.BoxGeometry(profile.chestRadius * profile.chestWidth * 1.05, 0.11, profile.chestRadius * profile.chestDepth * 1.92), characterMaterial(palette.accent, palette.accent), root, [0, 1.55, 0.05]);
+  const { head, hair, visor } = addCartoonFace(root, profile, palette, faceIndex, isBoss);
+  addRoleGear(root, role, profile, palette);
+
+  const leftArm = limb(root, profile.armRadius, profile.armLength, palette.body, -profile.shoulderX, 1.72, 0, 0.14, true);
+  const rightArm = limb(root, profile.armRadius, profile.armLength, palette.body, profile.shoulderX, 1.72, 0, -0.14, true);
+  const leftShoulder = mesh(new THREE.SphereGeometry(profile.armRadius * 1.4, 10, 7), characterMaterial(palette.accent), root, [-profile.shoulderX, 1.72, 0]);
+  const rightShoulder = mesh(new THREE.SphereGeometry(profile.armRadius * 1.4, 10, 7), characterMaterial(palette.accent), root, [profile.shoulderX, 1.72, 0]);
+  [leftArm, rightArm].forEach((arm) => mesh(new THREE.SphereGeometry(profile.armRadius * 0.88, 9, 7), characterMaterial(palette.skin), arm.pivot, [0, -profile.armLength * 0.92, 0]));
+
+  const leftLeg = limb(root, profile.legRadius, profile.legLength, palette.dark, -profile.legX, 0.91, 0, 0, true);
+  const rightLeg = limb(root, profile.legRadius, profile.legLength, palette.dark, profile.legX, 0.91, 0, 0, true);
+  [leftLeg, rightLeg].forEach((leg, index) => mesh(new THREE.BoxGeometry(profile.bootWidth, 0.2, profile.bootWidth * 1.42), characterMaterial(palette.accent), leg.pivot, [0, -profile.legLength * 0.92, 0.1]));
+
   const weaponGroup = new THREE.Group();
-  weaponGroup.position.set(0.55, 1.43, -0.5); root.add(weaponGroup);
-  mesh(new THREE.BoxGeometry(isBoss ? 1.25 : 0.88, isBoss ? 0.26 : 0.19, 0.25), material(0x1b3c4b, 0.33, 0.25), weaponGroup, [0.27, 0, 0]);
-  mesh(new THREE.BoxGeometry(0.32, 0.12, 0.28), material(palette.accent, 0.3, 0.1, palette.accent), weaponGroup, [0.12, 0.08, 0]);
-  const muzzle = new THREE.Object3D(); muzzle.position.set(isBoss ? 0.95 : 0.72, 0, 0); weaponGroup.add(muzzle);
-  root.userData.rig = { torso, vest, head, visor, leftShoulder, rightShoulder, leftArm: leftArm.pivot, rightArm: rightArm.pivot, leftLeg: leftLeg.pivot, rightLeg: rightLeg.pivot, weapon: weaponGroup, muzzle };
+  weaponGroup.position.set(0.08, 1.45, 0.49); root.add(weaponGroup);
+  mesh(new THREE.BoxGeometry(profile.weaponWidth, role === "heavy" || isBoss ? 0.25 : 0.18, profile.weaponLength), characterMaterial(0x193b4b), weaponGroup, [0, 0, profile.weaponLength * 0.2]);
+  mesh(new THREE.BoxGeometry(profile.weaponWidth * 0.62, 0.12, profile.weaponLength * 0.48), characterMaterial(palette.accent, palette.accent), weaponGroup, [0, 0.13, profile.weaponLength * 0.05]);
+  if (role === "scout") mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.28, 10), characterMaterial(0x102b38), weaponGroup, [0, 0.24, 0], [0, 0, Math.PI / 2]);
+  if (role === "heavy" || isBoss) [-1, 1].forEach((side) => mesh(new THREE.CylinderGeometry(0.055, 0.055, profile.weaponLength * 0.72, 8), characterMaterial(0x102b38), weaponGroup, [side * profile.weaponWidth * 0.28, 0, profile.weaponLength * 0.48], [Math.PI / 2, 0, 0]));
+  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0, profile.weaponLength * 0.75); weaponGroup.add(muzzle);
+  const botMuzzleFlash = mesh(new THREE.IcosahedronGeometry(isBoss ? 0.15 : 0.1, 0), new THREE.MeshBasicMaterial({ color: 0xffdf72, transparent: true, opacity: 0 }), weaponGroup, [0, 0, profile.weaponLength * 0.78]);
+  root.userData.rig = {
+    torso, hips, vest, head, hair, visor, leftShoulder, rightShoulder,
+    leftArm: leftArm.pivot, rightArm: rightArm.pivot, leftLeg: leftLeg.pivot, rightLeg: rightLeg.pivot,
+    weapon: weaponGroup, muzzle, botMuzzleFlash, profile
+  };
   return root;
 }
 
@@ -431,7 +487,7 @@ function createBot(index, spawn) {
     { body: type.color, dark: 0x46344d, accent: 0x5be1b0, skin: 0xb87557 },
     { body: type.color, dark: 0x263e4e, accent: 0x55d6e8, skin: 0xe5a376 }
   ];
-  const figure = createFigure(type, palettes[index % palettes.length], isBoss, isBoss ? 2 : index % faceTextures.length);
+  const figure = createFigure(role, type, palettes[index % palettes.length], isBoss, isBoss ? 2 : index % faceUrls.length);
   actorLayer.add(figure);
   const bot = {
     id: index, name: isBoss ? "Atlas" : ["Rook", "Vex", "Pico", "Dash", "Mako"][index], role, type, figure,
