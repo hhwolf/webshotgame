@@ -19,3 +19,24 @@ test("Three.js owns the only animation scheduler", async () => {
   assert.match(source, /renderer\.setAnimationLoop\(frame\)/);
   assert.doesNotMatch(source, /requestAnimationFrame\(frame\)/);
 });
+
+test("every campaign arena has a dedicated visual profile", async () => {
+  const source = await readFile(new URL("../src/game.js", import.meta.url), "utf8");
+  for (const arena of ["Cargo Court", "Sunset Yard", "Canal Works", "Metro Market", "Beacon District", "Apex Foundry"]) {
+    assert.match(source, new RegExp(`"${arena}": \\{ floor:`));
+  }
+});
+
+test("combat feedback avoids persistent tracer geometry", async () => {
+  const source = await readFile(new URL("../src/game.js", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /createTracer/);
+  assert.match(source, /muzzleQueuedAt/);
+  assert.match(source, /ejectShell/);
+});
+
+test("visual QA hooks and balanced render scale remain available", async () => {
+  const source = await readFile(new URL("../src/game.js", import.meta.url), "utf8");
+  assert.match(source, /setVisualPose/);
+  assert.match(source, /viewModelObstructionSamples/);
+  assert.match(source, /Math\.min\(devicePixelRatio, 0\.82\)/);
+});
